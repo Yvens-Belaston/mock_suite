@@ -143,7 +143,86 @@ api POST "/tas/api/operatorChanges/$LAPTOP_CHANGE_ID/processingStatusTransitions
 pause
 # ================================================================ END topdesk
 
-# (tickets 34-36: BEGIN/END topdesk, jira and teams sections go here, in that order)
+# ================================================================ BEGIN jira (ticket 35)
+JIRA_AUTH=(-u "svc-ofelia@${TENANT}:demo-api-token")
+JIRA_CASE_LABEL="case-1042"
+NOOR_ACCOUNT="712020:5f1c2a7e-0b3d-4c1e-9a6f-1d2e3f4a5b01"
+BRAM_ACCOUNT="712020:5f1c2a7e-0b3d-4c1e-9a6f-1d2e3f4a5b02"
+JIRA_TRANSITION_DONE="31"
+
+# jira_key: read a create-issue response on stdin, print its "key" (sed, so no jq needed).
+jira_key() {
+  local key
+  key=$(sed -n 's/.*"key"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+  if [[ -z "$key" ]]; then echo 'demo-run: no issue key in response' >&2; return 1; fi
+  printf '%s' "$key"
+}
+
+# jira_issue SUMMARY TEXT ACCOUNT: create an IAM task (ADF description, case label), print its key.
+jira_issue() {
+  api POST /rest/api/3/issue "{
+  \"fields\": {
+    \"project\": { \"key\": \"IAM\" },
+    \"issuetype\": { \"name\": \"Task\" },
+    \"summary\": \"$1\",
+    \"description\": { \"type\": \"doc\", \"version\": 1, \"content\": [
+      { \"type\": \"paragraph\", \"content\": [{ \"type\": \"text\", \"text\": \"$2\" }] }
+    ] },
+    \"assignee\": { \"accountId\": \"$3\" },
+    \"labels\": [\"$JIRA_CASE_LABEL\"],
+    \"duedate\": \"2026-11-27\"
+  }
+}" "${JIRA_AUTH[@]}" | jira_key
+}
+
+step "Jira: create SAP access issue"
+SAP_ISSUE_KEY=$(jira_issue "Toegang SAP voor Sanne de Vries" \
+  "Rol SAP-Raadpleger toekennen aan Sanne de Vries (indiensttreding 2026-12-01)." "$NOOR_ACCOUNT")
+echo "SAP issue: $SAP_ISSUE_KEY"
+pause
+
+step "Jira: create Zaaksysteem access issue"
+ZAAK_ISSUE_KEY=$(jira_issue "Zaaksysteem-account voor Sanne de Vries" \
+  "Account met rol Behandelaar aanmaken voor Sanne de Vries (indiensttreding 2026-12-01)." "$BRAM_ACCOUNT")
+echo "Zaaksysteem issue: $ZAAK_ISSUE_KEY"
+pause
+
+step "Jira: $SAP_ISSUE_KEY -> Done"
+api POST "/rest/api/3/issue/$SAP_ISSUE_KEY/transitions" \
+  "{\"transition\": {\"id\": \"$JIRA_TRANSITION_DONE\"}}" "${JIRA_AUTH[@]}"
+pause
+# ================================================================ END jira
+
+# ================================================================ BEGIN teams (ticket 36)
+# Escalation card, identical to spec section 4.5.
+ESCALATION_CARD=$(cat <<'JSON'
+{
+  "type": "message",
+  "attachments": [{
+    "contentType": "application/vnd.microsoft.card.adaptive",
+    "contentUrl": null,
+    "content": {
+      "type": "AdaptiveCard", "version": "1.5",
+      "body": [{ "type": "Container", "style": "attention", "items": [
+          { "type": "TextBlock", "text": "⚠️ Taak verlopen: werkplek inrichten", "weight": "Bolder", "size": "Medium" },
+          { "type": "FactSet", "facts": [
+            { "title": "Medewerker", "value": "Sanne de Vries" },
+            { "title": "Startdatum", "value": "01-12-2026" },
+            { "title": "Verantwoordelijk", "value": "Lotte Jansen (Facilities)" },
+            { "title": "Escalatie naar", "value": "Ruben de Boer" }
+          ]}
+      ]}],
+      "actions": [{ "type": "Action.OpenUrl", "title": "Open in Ofelia", "url": "http://localhost:8080/bonita/apps/userAppBonita/task-list" }]
+    }
+  }]
+}
+JSON
+)
+
+step "Teams: escalation to #Facilities (werkplek inrichten overdue)"
+api POST /teams/hook/facilities "$ESCALATION_CARD"
+pause
+# ================================================================ END teams
 
 # ================================================================ BEGIN offboarding
 printf '\n######## offboarding ########\n'
