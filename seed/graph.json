@@ -1,0 +1,374 @@
+{
+  "users": [
+    {
+      "id": "7d2f0c1a-0001-4b6e-9c3d-000000000001",
+      "displayName": "Pieter Bakker",
+      "givenName": "Pieter",
+      "surname": "Bakker",
+      "mailNickname": "pieter.bakker",
+      "userPrincipalName": "pieter.bakker@demo-amsterdam.onmicrosoft.com",
+      "mail": "pieter.bakker@demo-amsterdam.onmicrosoft.com",
+      "jobTitle": "Manager Digitalisering",
+      "department": "Digitalisering",
+      "officeLocation": "Amstel 1, Amsterdam",
+      "businessPhones": [
+        "+31 20 555 0101"
+      ],
+      "mobilePhone": null,
+      "preferredLanguage": "nl-NL",
+      "employeeHireDate": "2015-03-01T00:00:00Z",
+      "usageLocation": "NL",
+      "accountEnabled": true,
+      "managerId": null,
+      "assignedLicenses": [
+        {
+          "skuId": "05e9a617-0261-4cee-bb44-138d3ef5d965"
+        },
+        {
+          "skuId": "c5928f49-12ba-48f7-ada3-0d743a3601d5"
+        }
+      ],
+      "signInSessionsRevokedAt": null,
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "7d2f0c1a-0002-4b6e-9c3d-000000000002",
+      "displayName": "Fatima El Amrani",
+      "givenName": "Fatima",
+      "surname": "El Amrani",
+      "mailNickname": "fatima.elamrani",
+      "userPrincipalName": "fatima.elamrani@demo-amsterdam.onmicrosoft.com",
+      "mail": "fatima.elamrani@demo-amsterdam.onmicrosoft.com",
+      "jobTitle": "HR-adviseur",
+      "department": "HR",
+      "officeLocation": "Amstel 1, Amsterdam",
+      "businessPhones": [
+        "+31 20 555 0102"
+      ],
+      "mobilePhone": null,
+      "preferredLanguage": "nl-NL",
+      "employeeHireDate": "2019-06-01T00:00:00Z",
+      "usageLocation": "NL",
+      "accountEnabled": true,
+      "managerId": "7d2f0c1a-0001-4b6e-9c3d-000000000001",
+      "assignedLicenses": [
+        {
+          "skuId": "05e9a617-0261-4cee-bb44-138d3ef5d965"
+        }
+      ],
+      "signInSessionsRevokedAt": null,
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "7d2f0c1a-0003-4b6e-9c3d-000000000003",
+      "displayName": "Daan Visser",
+      "givenName": "Daan",
+      "surname": "Visser",
+      "mailNickname": "daan.visser",
+      "userPrincipalName": "daan.visser@demo-amsterdam.onmicrosoft.com",
+      "mail": "daan.visser@demo-amsterdam.onmicrosoft.com",
+      "jobTitle": "Servicedesk",
+      "department": "Servicedesk",
+      "officeLocation": "Amstel 1, Amsterdam",
+      "businessPhones": [
+        "+31 20 555 0103"
+      ],
+      "mobilePhone": null,
+      "preferredLanguage": "nl-NL",
+      "employeeHireDate": "2020-01-15T00:00:00Z",
+      "usageLocation": "NL",
+      "accountEnabled": true,
+      "managerId": "7d2f0c1a-0001-4b6e-9c3d-000000000001",
+      "assignedLicenses": [
+        {
+          "skuId": "05e9a617-0261-4cee-bb44-138d3ef5d965"
+        }
+      ],
+      "signInSessionsRevokedAt": null,
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "7d2f0c1a-0004-4b6e-9c3d-000000000004",
+      "displayName": "Lotte Jansen",
+      "givenName": "Lotte",
+      "surname": "Jansen",
+      "mailNickname": "lotte.jansen",
+      "userPrincipalName": "lotte.jansen@demo-amsterdam.onmicrosoft.com",
+      "mail": "lotte.jansen@demo-amsterdam.onmicrosoft.com",
+      "jobTitle": "Facilities",
+      "department": "Facilities",
+      "officeLocation": "Amstel 1, Amsterdam",
+      "businessPhones": [
+        "+31 20 555 0104"
+      ],
+      "mobilePhone": null,
+      "preferredLanguage": "nl-NL",
+      "employeeHireDate": "2021-04-01T00:00:00Z",
+      "usageLocation": "NL",
+      "accountEnabled": true,
+      "managerId": "7d2f0c1a-0005-4b6e-9c3d-000000000005",
+      "assignedLicenses": [
+        {
+          "skuId": "05e9a617-0261-4cee-bb44-138d3ef5d965"
+        }
+      ],
+      "signInSessionsRevokedAt": null,
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "7d2f0c1a-0005-4b6e-9c3d-000000000005",
+      "displayName": "Ruben de Boer",
+      "givenName": "Ruben",
+      "surname": "de Boer",
+      "mailNickname": "ruben.deboer",
+      "userPrincipalName": "ruben.deboer@demo-amsterdam.onmicrosoft.com",
+      "mail": "ruben.deboer@demo-amsterdam.onmicrosoft.com",
+      "jobTitle": "Teamlead Facilities",
+      "department": "Facilities",
+      "officeLocation": "Amstel 1, Amsterdam",
+      "businessPhones": [
+        "+31 20 555 0105"
+      ],
+      "mobilePhone": null,
+      "preferredLanguage": "nl-NL",
+      "employeeHireDate": "2016-09-01T00:00:00Z",
+      "usageLocation": "NL",
+      "accountEnabled": true,
+      "managerId": "7d2f0c1a-0001-4b6e-9c3d-000000000001",
+      "assignedLicenses": [
+        {
+          "skuId": "05e9a617-0261-4cee-bb44-138d3ef5d965"
+        }
+      ],
+      "signInSessionsRevokedAt": null,
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "7d2f0c1a-0006-4b6e-9c3d-000000000006",
+      "displayName": "Noor Hendriks",
+      "givenName": "Noor",
+      "surname": "Hendriks",
+      "mailNickname": "noor.hendriks",
+      "userPrincipalName": "noor.hendriks@demo-amsterdam.onmicrosoft.com",
+      "mail": "noor.hendriks@demo-amsterdam.onmicrosoft.com",
+      "jobTitle": "Applicatiebeheer SAP",
+      "department": "Digitalisering",
+      "officeLocation": "Amstel 1, Amsterdam",
+      "businessPhones": [
+        "+31 20 555 0106"
+      ],
+      "mobilePhone": null,
+      "preferredLanguage": "nl-NL",
+      "employeeHireDate": "2018-02-01T00:00:00Z",
+      "usageLocation": "NL",
+      "accountEnabled": true,
+      "managerId": "7d2f0c1a-0001-4b6e-9c3d-000000000001",
+      "assignedLicenses": [
+        {
+          "skuId": "05e9a617-0261-4cee-bb44-138d3ef5d965"
+        }
+      ],
+      "signInSessionsRevokedAt": null,
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "7d2f0c1a-0007-4b6e-9c3d-000000000007",
+      "displayName": "Bram Smit",
+      "givenName": "Bram",
+      "surname": "Smit",
+      "mailNickname": "bram.smit",
+      "userPrincipalName": "bram.smit@demo-amsterdam.onmicrosoft.com",
+      "mail": "bram.smit@demo-amsterdam.onmicrosoft.com",
+      "jobTitle": "Applicatiebeheer Zaaksysteem",
+      "department": "Digitalisering",
+      "officeLocation": "Amstel 1, Amsterdam",
+      "businessPhones": [
+        "+31 20 555 0107"
+      ],
+      "mobilePhone": null,
+      "preferredLanguage": "nl-NL",
+      "employeeHireDate": "2019-11-01T00:00:00Z",
+      "usageLocation": "NL",
+      "accountEnabled": true,
+      "managerId": "7d2f0c1a-0001-4b6e-9c3d-000000000001",
+      "assignedLicenses": [
+        {
+          "skuId": "05e9a617-0261-4cee-bb44-138d3ef5d965"
+        }
+      ],
+      "signInSessionsRevokedAt": null,
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "7d2f0c1a-0008-4b6e-9c3d-000000000008",
+      "displayName": "Emma Mulder",
+      "givenName": "Emma",
+      "surname": "Mulder",
+      "mailNickname": "emma.mulder",
+      "userPrincipalName": "emma.mulder@demo-amsterdam.onmicrosoft.com",
+      "mail": "emma.mulder@demo-amsterdam.onmicrosoft.com",
+      "jobTitle": "Automation CoE",
+      "department": "Digitalisering",
+      "officeLocation": "Amstel 1, Amsterdam",
+      "businessPhones": [
+        "+31 20 555 0108"
+      ],
+      "mobilePhone": null,
+      "preferredLanguage": "nl-NL",
+      "employeeHireDate": "2022-05-01T00:00:00Z",
+      "usageLocation": "NL",
+      "accountEnabled": true,
+      "managerId": "7d2f0c1a-0001-4b6e-9c3d-000000000001",
+      "assignedLicenses": [
+        {
+          "skuId": "05e9a617-0261-4cee-bb44-138d3ef5d965"
+        },
+        {
+          "skuId": "c5928f49-12ba-48f7-ada3-0d743a3601d5"
+        }
+      ],
+      "signInSessionsRevokedAt": null,
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "7d2f0c1a-0009-4b6e-9c3d-000000000009",
+      "displayName": "Sem van Dijk",
+      "givenName": "Sem",
+      "surname": "van Dijk",
+      "mailNickname": "sem.vandijk",
+      "userPrincipalName": "sem.vandijk@demo-amsterdam.onmicrosoft.com",
+      "mail": "sem.vandijk@demo-amsterdam.onmicrosoft.com",
+      "jobTitle": "Medewerker Sociaal Domein",
+      "department": "Sociaal Domein",
+      "officeLocation": "Amstel 1, Amsterdam",
+      "businessPhones": [
+        "+31 20 555 0109"
+      ],
+      "mobilePhone": null,
+      "preferredLanguage": "nl-NL",
+      "employeeHireDate": "2023-03-01T00:00:00Z",
+      "usageLocation": "NL",
+      "accountEnabled": true,
+      "managerId": "7d2f0c1a-0002-4b6e-9c3d-000000000002",
+      "assignedLicenses": [
+        {
+          "skuId": "05e9a617-0261-4cee-bb44-138d3ef5d965"
+        }
+      ],
+      "signInSessionsRevokedAt": null,
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "7d2f0c1a-0010-4b6e-9c3d-000000000010",
+      "displayName": "Julia Peters",
+      "givenName": "Julia",
+      "surname": "Peters",
+      "mailNickname": "julia.peters",
+      "userPrincipalName": "julia.peters@demo-amsterdam.onmicrosoft.com",
+      "mail": "julia.peters@demo-amsterdam.onmicrosoft.com",
+      "jobTitle": "Medewerker Sociaal Domein",
+      "department": "Sociaal Domein",
+      "officeLocation": "Amstel 1, Amsterdam",
+      "businessPhones": [
+        "+31 20 555 0110"
+      ],
+      "mobilePhone": null,
+      "preferredLanguage": "nl-NL",
+      "employeeHireDate": "2024-08-01T00:00:00Z",
+      "usageLocation": "NL",
+      "accountEnabled": true,
+      "managerId": "7d2f0c1a-0002-4b6e-9c3d-000000000002",
+      "assignedLicenses": [
+        {
+          "skuId": "05e9a617-0261-4cee-bb44-138d3ef5d965"
+        }
+      ],
+      "signInSessionsRevokedAt": null,
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    }
+  ],
+  "groups": [
+    {
+      "id": "5a8e3b9d-0001-4c2f-8e1a-000000000001",
+      "displayName": "GG-Digitalisering",
+      "memberIds": [
+        "7d2f0c1a-0001-4b6e-9c3d-000000000001",
+        "7d2f0c1a-0006-4b6e-9c3d-000000000006",
+        "7d2f0c1a-0007-4b6e-9c3d-000000000007",
+        "7d2f0c1a-0008-4b6e-9c3d-000000000008"
+      ],
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "5a8e3b9d-0002-4c2f-8e1a-000000000002",
+      "displayName": "GG-Sociaal-Domein",
+      "memberIds": [
+        "7d2f0c1a-0009-4b6e-9c3d-000000000009",
+        "7d2f0c1a-0010-4b6e-9c3d-000000000010"
+      ],
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "5a8e3b9d-0003-4c2f-8e1a-000000000003",
+      "displayName": "GG-Facilities",
+      "memberIds": [
+        "7d2f0c1a-0004-4b6e-9c3d-000000000004",
+        "7d2f0c1a-0005-4b6e-9c3d-000000000005"
+      ],
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "5a8e3b9d-0004-4c2f-8e1a-000000000004",
+      "displayName": "GG-Alle-Medewerkers",
+      "memberIds": [
+        "7d2f0c1a-0001-4b6e-9c3d-000000000001",
+        "7d2f0c1a-0002-4b6e-9c3d-000000000002",
+        "7d2f0c1a-0003-4b6e-9c3d-000000000003",
+        "7d2f0c1a-0004-4b6e-9c3d-000000000004",
+        "7d2f0c1a-0005-4b6e-9c3d-000000000005",
+        "7d2f0c1a-0006-4b6e-9c3d-000000000006",
+        "7d2f0c1a-0007-4b6e-9c3d-000000000007",
+        "7d2f0c1a-0008-4b6e-9c3d-000000000008",
+        "7d2f0c1a-0009-4b6e-9c3d-000000000009",
+        "7d2f0c1a-0010-4b6e-9c3d-000000000010"
+      ],
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "5a8e3b9d-0005-4c2f-8e1a-000000000005",
+      "displayName": "GG-VPN-Gebruikers",
+      "memberIds": [
+        "7d2f0c1a-0001-4b6e-9c3d-000000000001",
+        "7d2f0c1a-0006-4b6e-9c3d-000000000006",
+        "7d2f0c1a-0007-4b6e-9c3d-000000000007",
+        "7d2f0c1a-0008-4b6e-9c3d-000000000008"
+      ],
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z"
+    }
+  ],
+  "skus": [
+    {
+      "skuId": "05e9a617-0261-4cee-bb44-138d3ef5d965",
+      "skuPartNumber": "M365_E3"
+    },
+    {
+      "skuId": "c5928f49-12ba-48f7-ada3-0d743a3601d5",
+      "skuPartNumber": "VISIO_PLAN2"
+    }
+  ]
+}
