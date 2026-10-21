@@ -40,6 +40,33 @@ test('"Wis" clears the form and the form stays open', async ({ page }) => {
   await expect(form).toBeVisible();
 });
 
+// Playwright runs with BONITA_ENABLED=false, so the callback A outcome event is stubbed on /events.
+async function stubCallbackEvent(page: import('@playwright/test').Page, action: string, summary: string) {
+  const event = { system: 'topdesk', entity: 'incident', action, id: 'stub', summary, at: new Date().toISOString() };
+  await page.route('**/events', (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' },
+      body: `retry: 600000\n\nevent: change\ndata: ${JSON.stringify(event)}\n\n`,
+    }),
+  );
+}
+
+test('a started Ofelia case shows a toast with the case id', async ({ page }) => {
+  await stubCallbackEvent(page, 'callback_ok', 'Ofelia-proces gestart – case 1042');
+  await page.goto('/ui/topdesk');
+  const toast = page.getByRole('status').getByText('Ofelia-proces gestart – case 1042');
+  await expect(toast).toBeVisible();
+});
+
+test('a Bonita error shows a red toast with the HTTP status', async ({ page }) => {
+  await stubCallbackEvent(page, 'callback_error', 'Fout bij starten Ofelia-proces (HTTP 500)');
+  await page.goto('/ui/topdesk');
+  const toast = page.getByRole('status').locator('div', { hasText: 'Fout bij starten Ofelia-proces (HTTP 500)' }).last();
+  await expect(toast).toBeVisible();
+  await expect(toast).toHaveClass(/text-red-800/);
+});
+
 test('with BONITA_ENABLED=false the header shows "Ofelia niet verbonden"', async ({ page }) => {
   await page.goto('/ui/topdesk');
   await expect(page.getByRole('banner').getByText('Ofelia niet verbonden')).toBeVisible();
