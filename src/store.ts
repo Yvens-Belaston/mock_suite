@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import { readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,6 +26,20 @@ export interface ChangeEvent extends Change {
   at: string;
 }
 
+/** One mock API call as the presenter sees it in `/admin/requests` (spec section 4.6). */
+export interface RequestLogEntry {
+  method: string;
+  /** Without query string. */
+  path: string;
+  body: unknown;
+  status: number;
+  ms: number;
+  at: string;
+}
+
+/** How many request log entries the store keeps (oldest dropped first). */
+export const REQUEST_LOG_SIZE = 500;
+
 export interface Store {
   /** The live state. Read it freely; write only through `update`. */
   get(): State;
@@ -39,7 +54,13 @@ export interface Store {
   defineCounter(name: string, highestInSeed: (seed: State) => number): void;
   /** Take the next number of a counter registered with `defineCounter`. */
   next(name: string): number;
-  /** Put every system back to the seed, restart counters from the seed and clear `events`. */
+  /** The last `REQUEST_LOG_SIZE` mock API calls, oldest first. */
+  readonly requests: readonly RequestLogEntry[];
+  /** Append to the request log and emit an `admin`/`request`/`created` change on `changes`. */
+  logRequest(entry: Omit<RequestLogEntry, 'at'>): RequestLogEntry;
+  /** Emits `'change'` with a `ChangeEvent` for every new request log entry. */
+  readonly changes: EventEmitter;
+  /** Put every system back to the seed, restart counters from the seed, clear `events` and `requests`. */
   reset(): void;
 }
 
@@ -57,11 +78,33 @@ export function createStore(seedDir: string = DEFAULT_SEED_DIR): Store {
   let events: ChangeEvent[] = [];
   const counterSeeds = new Map<string, number>();
   let counters = new Map<string, number>();
+  let requests: RequestLogEntry[] = [];
+  let requestSeq = 0;
+  const changes = new EventEmitter();
 
   return {
     get: () => state,
     get events() {
       return events;
+    },
+    get requests() {
+      return requests;
+    },
+    changes,
+    logRequest(entry) {
+      const logged: RequestLogEntry = { ...entry, at: new Date().toISOString() };
+      requests.push(logged);
+      if (requests.length > REQUEST_LOG_SIZE) requests.splice(0, requests.length - REQUEST_LOG_SIZE);
+      const change: ChangeEvent = {
+        system: 'admin',
+        entity: 'request',
+        action: 'created',
+        id: String(++requestSeq),
+        summary: `${logged.method} ${logged.path} ${logged.status} · ${logged.ms} ms`,
+        at: logged.at,
+      };
+      changes.emit('change', change);
+      return logged;
     },
     update(system, fn) {
       const systemState = (state[system] ??= {});
@@ -83,6 +126,8 @@ export function createStore(seedDir: string = DEFAULT_SEED_DIR): Store {
     reset() {
       state = structuredClone(seed);
       events = [];
+      requests = [];
+      requestSeq = 0;
       counters = new Map(counterSeeds);
     },
   };
