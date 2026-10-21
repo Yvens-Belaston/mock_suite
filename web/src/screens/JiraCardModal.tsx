@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Adf } from '../adf';
-import type { JiraIssue } from './Jira';
+import { OfeliaChip, type JiraIssue } from './Jira';
 
 interface JiraComment {
   id: string;
@@ -39,9 +39,12 @@ export function JiraCardModal({
       >
         <div className="flex items-start gap-2">
           <div>
-            <h2 id={titleId} className="font-semibold" style={{ color: 'var(--accent)' }}>
-              {issue.key}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 id={titleId} className="font-semibold" style={{ color: 'var(--accent)' }}>
+                {issue.key}
+              </h2>
+              <OfeliaChip callback={issue.bonitaCallback} />
+            </div>
             <p className="text-gray-900">{issue.fields.summary}</p>
           </div>
           <button
