@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { bonitaConfig } from '../bonita.js';
 import type { Store } from '../store.js';
-import { createOnboardingIncident, parseOnboardingForm, startOfeliaCase } from './topdesk-onboarding.js';
+import { createOnboardingIncident, parseOnboardingForm, startCaseAndRecordOnIncident } from './topdesk-onboarding.js';
 
 export function adminRoutes(store: Store) {
   return async function (app: FastifyInstance): Promise<void> {
@@ -22,7 +22,7 @@ export function adminRoutes(store: Store) {
       const result = createOnboardingIncident(store, form);
       if (!result.ok) return reply.code(result.status).send({ message: result.message });
       // Bonita disabled: local state only. A Bonita failure keeps the incident, so the reply stays 201.
-      const ofelia = bonitaConfig().enabled ? await startOfeliaCase(store, form, result.incident) : {};
+      const ofelia = bonitaConfig().enabled ? await startCaseAndRecordOnIncident(store, form, result.incident) : {};
       return reply.code(201).send({ incident: result.incident, ...ofelia });
     });
 

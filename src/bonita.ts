@@ -90,7 +90,7 @@ export function resetBonitaClient(): void {
   defaultClient = undefined;
 }
 
-/** Outcome of a callback into Bonita, stored on the mock record (e.g. `issue.bonitaCallback`). */
+/** Outcome of a callback into Bonita, stored on the simulated system's record (e.g. `issue.bonitaCallback`). */
 export interface BonitaCallbackResult {
   status: 'ok' | 'error';
   /** Bonita's HTTP status; `null` when Bonita could not be reached or login failed. */
@@ -165,6 +165,8 @@ const is2xx = (status: number) => status >= 200 && status <= 299;
  * Callback A (spec section 5): resolve the enabled BONITA_ONBOARDING_PROCESS and instantiate it with the
  * contract built from `input` (see `contractBody`). Never throws: no enabled process -> error with
  * httpStatus 404; unreachable/login failure -> `httpStatus: null`. Callers skip it when Bonita is disabled.
+ * Bonita client only: it does not touch the store. `startCaseAndRecordOnIncident` (topdesk-onboarding.ts)
+ * wraps it and records the result on the TOPdesk incident.
  */
 export async function startOnboardingCase(
   input: Record<string, unknown>,

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-// The presenter README (ticket 37): start, reset, connect Bonita, change the contract, rehearse.
+// The presenter README: start, reset, connect Bonita, change the contract, rehearse.
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const readme = () => readFileSync(repo + 'README.md', 'utf8');
 
@@ -11,7 +11,7 @@ describe('README', () => {
     expect(existsSync(repo + 'README.md')).toBe(true);
   });
 
-  it('covers start, reset, connecting Bonita, the contract and rehearsal (ticket acceptance)', () => {
+  it('covers start, reset, connecting Bonita, the contract and rehearsal', () => {
     const text = readme();
     for (const needle of [
       'docker compose up',

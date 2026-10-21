@@ -1,4 +1,5 @@
-import { Th, type Live } from './Topdesk';
+import type { Live } from '../lib/topdeskTypes';
+import { Th } from './Th';
 
 /** Stored TOPdesk person as returned by `/admin/state`.topdesk.persons (spec section 3). */
 export interface Person {

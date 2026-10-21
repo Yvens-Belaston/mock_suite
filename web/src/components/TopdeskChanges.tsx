@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { toast } from '../components/Shell';
-import { formatDateTime, Th, type Live } from './Topdesk';
+import { formatDateTime } from '../lib/dutchDate';
+import type { Live } from '../lib/topdeskTypes';
+import { toast } from './Shell';
+import { Th } from './Th';
 
 /** Stored TOPdesk operator change as returned by `/admin/state`.topdesk.changes (spec section 3). */
 export interface Change {
@@ -30,7 +32,7 @@ const TONE_CLASS: Record<Tone, string> = {
   green: 'bg-green-50 text-green-700',
 };
 
-/** Screen-side auth for the mock TOPdesk API (any Basic credentials pass). */
+/** Screen-side auth for the simulated TOPdesk API (any Basic credentials pass). */
 const UI_AUTH = `Basic ${btoa('presenter:ui')}`;
 
 /** Transition action that leaves each status, with the status it lands in. */

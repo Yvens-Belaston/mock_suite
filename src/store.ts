@@ -64,7 +64,7 @@ export interface Store {
   readonly requests: readonly RequestLogEntry[];
   /** Append to the request log and emit an `admin`/`request`/`created` change on `emitter`. */
   logRequest(entry: Omit<RequestLogEntry, 'at'>): RequestLogEntry;
-  /** Put every system back to the seed, restart counters from the seed, clear `events` and `requests`. */
+  /** Re-read `seed/*.json` from disk, put every system back to it, restart counters from the seed, clear `events` and `requests`. */
   reset(): void;
 }
 
@@ -77,10 +77,10 @@ function loadSeed(seedDir: string): State {
 }
 
 export function createStore(seedDir: string = DEFAULT_SEED_DIR): Store {
-  const seed = loadSeed(seedDir);
+  let seed = loadSeed(seedDir);
   let state: State = structuredClone(seed);
   let events: ChangeEvent[] = [];
-  const counterSeeds = new Map<string, number>();
+  const counterSeeds = new Map<string, (seed: State) => number>();
   let counters = new Map<string, number>();
   const emitter = new EventEmitter();
   emitter.setMaxListeners(0); // one listener per open /events connection
@@ -119,9 +119,8 @@ export function createStore(seedDir: string = DEFAULT_SEED_DIR): Store {
       return event;
     },
     defineCounter(name, highestInSeed) {
-      const highest = highestInSeed(structuredClone(seed));
-      counterSeeds.set(name, highest);
-      counters.set(name, highest);
+      counterSeeds.set(name, highestInSeed);
+      counters.set(name, highestInSeed(structuredClone(seed)));
     },
     next(name) {
       const current = counters.get(name);
@@ -130,11 +129,17 @@ export function createStore(seedDir: string = DEFAULT_SEED_DIR): Store {
       return current + 1;
     },
     reset() {
+      try {
+        seed = loadSeed(seedDir);
+      } catch (err) {
+        // A half-edited seed file must not take the demo down: keep the last good seed.
+        process.stdout.write(`reset: seed not reloaded (${(err as Error).message}); using the last good seed\n`);
+      }
       state = structuredClone(seed);
       events = [];
       requests = [];
       requestSeq = 0;
-      counters = new Map(counterSeeds);
+      counters = new Map([...counterSeeds].map(([name, highest]) => [name, highest(structuredClone(seed))]));
       // Broadcast only: not appended to the (just cleared) events log.
       emitter.emit('change', {
         system: 'admin',

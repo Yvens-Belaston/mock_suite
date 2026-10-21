@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-// Read as plain text: no Docker daemon here (building/running the image is ticket 38).
+// Read as plain text: no Docker daemon here (the image is not yet verified with Docker).
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const read = (file: string) => readFileSync(repo + file, 'utf8');
 /** Instruction lines only (comments and blank lines dropped), so a commented-out rule doesn't count. */

@@ -2,7 +2,7 @@ import { startOnboardingCase, type StartCaseResult } from '../bonita.js';
 import type { Store } from '../store.js';
 import { createIncident, type CreateIncidentResult, type Incident } from './topdesk-incidents.js';
 
-/** The onboarding form = the section 5 contract fields (without `topdeskIncidentNumber`, which the mock adds). */
+/** The onboarding form = the section 5 contract fields (without `topdeskIncidentNumber`, which the mock suite adds). */
 export interface OnboardingForm {
   firstName: string;
   lastName: string;
@@ -79,11 +79,12 @@ export type OfeliaStart = { caseId: string } | { ofeliaError: { httpStatus: numb
 const AUTHOR = 'Ofelia Integratie';
 
 /**
- * Callback A steps 3-6: start the Bonita onboarding case for `incident`, then record the outcome on it in
+ * Callback A steps 3-6: start the Bonita onboarding case for `incident` (via the Bonita client
+ * `startOnboardingCase`), then record the outcome on the incident in
  * ONE update (`externalNumber` OFELIA-{caseId} + action, or the error action; event callback_ok/_error).
  * The caller checks `bonitaConfig().enabled` first. Never throws.
  */
-export async function startOfeliaCase(store: Store, form: OnboardingForm, incident: Incident): Promise<OfeliaStart> {
+export async function startCaseAndRecordOnIncident(store: Store, form: OnboardingForm, incident: Incident): Promise<OfeliaStart> {
   const result: StartCaseResult = await startOnboardingCase({ ...form, topdeskIncidentNumber: incident.number });
   const now = new Date().toISOString();
   // Event summaries are the screen toasts (Shell): green on callback_ok, red on callback_error.

@@ -95,7 +95,7 @@ function RequestBar() {
   return (
     <ul
       aria-label="Laatste API-aanroepen"
-      className="flex h-8 shrink-0 items-center gap-4 overflow-hidden border-t border-gray-200 bg-gray-50 px-3 font-mono text-[13px] whitespace-nowrap text-gray-700"
+      className="flex h-8 shrink-0 items-center gap-4 overflow-hidden border-t border-gray-200 bg-gray-50 px-3 font-mono text-sm whitespace-nowrap text-gray-700"
     >
       {last.length === 0 && <li className="list-none text-gray-400">Nog geen API-aanroepen</li>}
       {last.map((r, i) => (

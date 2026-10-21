@@ -42,7 +42,7 @@ json_get() {
     });' "$1"
 }
 
-# ================================================================ BEGIN entra (ticket 33)
+# ================================================================ BEGIN entra
 GRAPH_USER_UPN="sanne.devries@${TENANT}"
 PIETER_ID="7d2f0c1a-0001-4b6e-9c3d-000000000001"
 GROUP_DIGITALISERING="5a8e3b9d-0001-4c2f-8e1a-000000000001"
@@ -96,7 +96,7 @@ api POST "/v1.0/users/$SANNE_ID/assignLicense" \
 pause
 # ================================================================ END entra
 
-# ================================================================ BEGIN topdesk (ticket 34)
+# ================================================================ BEGIN topdesk
 TOPDESK_AUTH=(-u "ofelia:demo-secret")
 
 step "TOPdesk: look up Sanne de Vries (by email)"
@@ -143,7 +143,7 @@ api POST "/tas/api/operatorChanges/$LAPTOP_CHANGE_ID/processingStatusTransitions
 pause
 # ================================================================ END topdesk
 
-# ================================================================ BEGIN jira (ticket 35)
+# ================================================================ BEGIN jira
 JIRA_AUTH=(-u "svc-ofelia@${TENANT}:demo-api-token")
 JIRA_CASE_LABEL="case-1042"
 NOOR_ACCOUNT="712020:5f1c2a7e-0b3d-4c1e-9a6f-1d2e3f4a5b01"
@@ -193,7 +193,7 @@ api POST "/rest/api/3/issue/$SAP_ISSUE_KEY/transitions" \
 pause
 # ================================================================ END jira
 
-# ================================================================ BEGIN teams (ticket 36)
+# ================================================================ BEGIN teams
 # Escalation card, identical to spec section 4.5.
 ESCALATION_CARD=$(cat <<'JSON'
 {
@@ -227,7 +227,7 @@ pause
 # ================================================================ BEGIN offboarding
 printf '\n######## offboarding ########\n'
 
-# ---------------------------------------------------------------- offboarding: entra (ticket 33)
+# ---------------------------------------------------------------- offboarding: entra
 step "Entra: disable Sanne de Vries"
 api PATCH "/v1.0/users/$SANNE_ID" '{"accountEnabled": false}' "${GRAPH_AUTH[@]}"
 pause
@@ -241,7 +241,7 @@ api DELETE "/v1.0/groups/$GROUP_VPN/members/$SANNE_ID/\$ref" '' "${GRAPH_AUTH[@]
 pause
 # ---------------------------------------------------------------- end offboarding: entra
 
-# ---------------------------------------------------------------- offboarding: topdesk (ticket 34)
+# ---------------------------------------------------------------- offboarding: topdesk
 step "TOPdesk: archive person Sanne de Vries"
 api PATCH "/tas/api/persons/id/$TOPDESK_SANNE_ID/archive" '' "${TOPDESK_AUTH[@]}" >/dev/null
 pause

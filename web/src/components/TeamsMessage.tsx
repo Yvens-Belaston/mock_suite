@@ -1,5 +1,6 @@
 import * as AC from 'adaptivecards';
 import { useEffect, useMemo, useRef } from 'react';
+import { formatDateTime } from '../lib/dutchDate';
 
 export interface TeamsMessage {
   id: string;
@@ -71,20 +72,14 @@ export function isEscalation(card: Json): boolean {
   return all.some((e) => e.type === 'Container' && e.style === 'attention');
 }
 
-const timeFormat = new Intl.DateTimeFormat('nl-NL', {
-  timeZone: 'Europe/Amsterdam',
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
+/** Library defaults, except `small` text is raised from 12 to 14 px (spec 6.6: nothing below 14 px). */
+const FONT_SIZES = { small: 14, default: 14, medium: 17, large: 21, extraLarge: 26 };
+const HOST_CONFIG = new AC.HostConfig({
+  fontTypes: {
+    default: { fontSizes: FONT_SIZES },
+    monospace: { fontSizes: FONT_SIZES },
+  },
 });
-
-/** `01-12-2026 09:00` in Dutch time (spec 6.6). */
-function dutchTime(iso: string): string {
-  const p = Object.fromEntries(timeFormat.formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
-  return `${p.day}-${p.month}-${p.year} ${p.hour}:${p.minute}`;
-}
 
 /** Renders one card with the `adaptivecards` library; Action.OpenUrl opens a new tab. */
 function AdaptiveCardView({ card }: { card: Json }) {
@@ -93,6 +88,7 @@ function AdaptiveCardView({ card }: { card: Json }) {
     const el = host.current;
     if (!el) return;
     const ac = new AC.AdaptiveCard();
+    ac.hostConfig = HOST_CONFIG;
     ac.onExecuteAction = (action) => {
       if (action instanceof AC.OpenUrlAction && action.url) window.open(action.url, '_blank', 'noopener');
     };
@@ -106,7 +102,7 @@ function AdaptiveCardView({ card }: { card: Json }) {
 
 /**
  * One feed entry: sender, Dutch time and the payload rendered as an Adaptive Card (red border on escalation).
- * `channel`: channel name shown in the header, only in the "Alle kanalen" feed (ticket 26).
+ * `channel`: channel name shown in the header, only in the "Alle kanalen" feed.
  */
 export function MessageItem({ message, flash, channel }: { message: TeamsMessage; flash: boolean; channel?: string }) {
   const card = useMemo(() => toAdaptiveCard(message.payload), [message.payload]);
@@ -123,7 +119,7 @@ export function MessageItem({ message, flash, channel }: { message: TeamsMessage
           {SENDER}
         </span>
         <time dateTime={message.receivedAt} className="text-gray-500">
-          {dutchTime(message.receivedAt)}
+          {formatDateTime(message.receivedAt)}
         </time>
         {channel && <span className="text-gray-500"># {channel}</span>}
       </div>

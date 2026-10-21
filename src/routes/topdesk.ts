@@ -128,10 +128,10 @@ export function topdeskRoutes(store: Store) {
 
     app.get('/version',async () => ({ version: '3.x-mock' }));
 
-    // --- Operator changes (ticket 15): routes live in ./topdesk-changes.ts ---
+    // --- Operator changes: routes live in ./topdesk-changes.ts ---
     registerChangeRoutes(app, store);
     // --- end operator changes ---
-    // --- Incidents (ticket 14): routes live in ./topdesk-incidents.ts ---
+    // --- Incidents: routes live in ./topdesk-incidents.ts ---
     registerIncidentRoutes(app, store);
     // --- end incidents ---
 

@@ -9,7 +9,7 @@ import { Teams } from './screens/Teams';
 import { Topdesk } from './screens/Topdesk';
 import './index.css';
 
-// Placeholder screens; tickets 08+ replace these with web/src/screens/*.tsx (each renders <Shell screen=...>).
+// Fallback for a screen key without a component in web/src/screens (each renders <Shell screen=...>).
 function Placeholder({ screen }: { screen: ScreenKey }) {
   return (
     <Shell screen={screen}>

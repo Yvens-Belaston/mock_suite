@@ -1,27 +1,10 @@
 import { useState, type DragEvent } from 'react';
 import { BookOpen, CheckSquare, Zap, type LucideIcon } from 'lucide-react';
+import { JiraCardModal } from '../components/JiraCardModal';
+import { OfeliaChip } from '../components/OfeliaChip';
 import { Shell, toast, useLiveState } from '../components/Shell';
-import { JiraCardModal } from './JiraCardModal';
-
-export interface JiraIssue {
-  id: string;
-  key: string;
-  fields: {
-    project: { key: string };
-    issuetype: { name: string };
-    summary: string;
-    description: unknown;
-    assignee: { accountId: string } | null;
-    labels: string[];
-    duedate: string | null;
-    status: { name: string };
-  };
-  comments: unknown[];
-  /** Callback B result (ticket 30), set once a `case-*` issue reached Done. */
-  bonitaCallback?: { status: 'ok' | 'error'; httpStatus: number | null; at: string };
-  createdAt: string;
-  updatedAt: string;
-}
+import { formatDate } from '../lib/dutchDate';
+import type { JiraIssue } from '../lib/jiraTypes';
 
 interface JiraUser {
   accountId: string;
@@ -40,12 +23,12 @@ export type ColumnName = (typeof COLUMNS)[number];
 /** Transition ids from `seed/jira.json` per target status. */
 const TRANSITION_TO: Record<ColumnName, string> = { 'To Do': '11', 'In Progress': '21', Done: '31' };
 
-/** Screen-side auth for the mock Jira API (any Basic credentials pass). */
+/** Screen-side auth for the simulated Jira API (any Basic credentials pass). */
 const UI_AUTH = `Basic ${btoa('presenter:ui')}`;
 
 /**
  * Moves an issue to `status` through the same route Bonita uses (`X-Mock-Source: ui`), so callback B still fires.
- * The board refreshes from the resulting change event. Shared by the buttons (21) and drag-and-drop (23).
+ * The board refreshes from the resulting change event. Shared by the card buttons and drag-and-drop.
  */
 export async function moveIssue(key: string, status: ColumnName): Promise<void> {
   const res = await fetch(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`, {
@@ -56,7 +39,7 @@ export async function moveIssue(key: string, status: ColumnName): Promise<void> 
   if (!res.ok) toast(`${key} verplaatsen mislukt (${res.status})`, 'error');
 }
 
-// --- Drag and drop (ticket 23): native HTML5; a drop maps column -> transition by `to.name` via moveIssue. ---
+// --- Drag and drop: native HTML5; a drop maps column -> transition by `to.name` via moveIssue. ---
 const DRAG_TYPE = 'application/x-jira-issue';
 
 function startCardDrag(e: DragEvent<HTMLElement>, issue: JiraIssue) {
@@ -87,12 +70,6 @@ const TYPE_ICONS: Record<string, LucideIcon> = { Epic: Zap, Story: BookOpen };
 function initials(name: string): string {
   const parts = name.split(/\s+/).filter(Boolean);
   return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
-}
-
-/** `2026-12-01` -> `01-12-2026`. */
-function dutchDate(iso: string): string {
-  const [y, m, d] = iso.split('-');
-  return `${d}-${m}-${y}`;
 }
 
 function isOverdue(iso: string, status: string): boolean {
@@ -131,7 +108,7 @@ function Card({
         <OfeliaChip callback={issue.bonitaCallback} />
         {assignee && (
           <span
-            className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-700"
+            className="ml-auto flex h-7 w-7 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-700"
             title={assignee.displayName}
           >
             {initials(assignee.displayName)}
@@ -142,7 +119,7 @@ function Card({
       {fields.labels.length > 0 && (
         <ul className="mt-2 flex flex-wrap gap-1">
           {fields.labels.map((l) => (
-            <li key={l} className="rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-700">
+            <li key={l} className="rounded bg-indigo-50 px-1.5 py-0.5 text-sm text-indigo-700">
               {l}
             </li>
           ))}
@@ -154,7 +131,7 @@ function Card({
             data-overdue={String(isOverdue(fields.duedate, status))}
             className={isOverdue(fields.duedate, status) ? 'font-medium text-red-600' : 'text-gray-500'}
           >
-            {dutchDate(fields.duedate)}
+            {formatDate(fields.duedate)}
           </span>
         )}
         <span className="ml-auto flex gap-1">
@@ -166,22 +143,6 @@ function Card({
   );
 }
 
-// --- Ofelia chip (ticket 30): green when Bonita accepted callback B, red on error. Reusable in the card modal (22).
-export function OfeliaChip({ callback }: { callback: JiraIssue['bonitaCallback'] }) {
-  if (!callback) return null;
-  const ok = callback.status === 'ok';
-  return (
-    <span
-      data-testid="ofelia-chip"
-      data-status={callback.status}
-      className={`rounded-full px-2 py-0.5 text-xs font-medium ${ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
-      title={callback.httpStatus ? `Bonita HTTP ${callback.httpStatus}` : 'Bonita niet bereikbaar'}
-    >
-      {ok ? 'Ofelia notified' : `Ofelia fout${callback.httpStatus ? ` (${callback.httpStatus})` : ''}`}
-    </span>
-  );
-}
-// --- end Ofelia chip
 
 function CardButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (

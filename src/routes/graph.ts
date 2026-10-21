@@ -22,6 +22,9 @@ function basicCredentials(header: string | undefined): { id?: string; secret?: s
 /** Microsoft Graph (`/v1.0`) and the Entra token endpoint (spec sections 4.1, 4.3). */
 export function graphRoutes(store: Store) {
   return async function (app: FastifyInstance): Promise<void> {
+    /** The tenant Bonita is expected to use (spec section 7); any tenant is still accepted, only logged. */
+    const tenantId = process.env.TENANT_ID || 'demo-amsterdam';
+
     // Encapsulated: only routes in this plugin parse form bodies.
     app.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, (_req, body, done) => {
       done(null, Object.fromEntries(new URLSearchParams(body as string)));
@@ -42,6 +45,8 @@ export function graphRoutes(store: Store) {
         if (missing) {
           return reply.code(400).send(tokenError(`The request body must contain the following parameter: '${missing}'.`));
         }
+        const match = req.params.tenant === tenantId ? 'matches TENANT_ID' : `TENANT_ID is ${tenantId}`;
+        process.stdout.write(`token tenant ${req.params.tenant} (${match})\n`);
         return { token_type: 'Bearer', expires_in: 3599, access_token: `mock-${randomBytes(16).toString('hex')}` };
       },
     );
@@ -75,14 +80,14 @@ export function graphRoutes(store: Store) {
       return { '@odata.context': `${ODATA}#users/$entity`, ...project(user, req.query.$select) };
     });
 
-    // Ticket 09: user writes (POST/PATCH user, manager $ref, assignLicense, revokeSignInSessions).
+    // User writes (POST/PATCH user, manager $ref, assignLicense, revokeSignInSessions).
     userWriteRoutes(app, store);
 
     groupRoutes(app, store);
   };
 }
 
-// ---- Groups and memberships (ticket 10) -------------------------------------------------------
+// ---- Groups and memberships ------------------------------------------------------------------
 
 /** A group as stored in `state.graph.groups` (spec section 3). */
 export interface GraphGroup {
@@ -184,7 +189,7 @@ function findGroup(store: Store, gid: string): GraphGroup | undefined {
   return groups(store).find((g) => g.id === gid);
 }
 
-// ---- end groups (ticket 10) -------------------------------------------------------------------
+// ---- end groups ------------------------------------------------------------------------------
 
 const ODATA = 'https://graph.microsoft.com/v1.0/$metadata';
 
@@ -270,7 +275,7 @@ export function project(user: GraphUser, select?: string): Record<string, unknow
 }
 
 // ---------------------------------------------------------------------------
-// Ticket 09: user writes (spec 4.3). Registered inside `graphRoutes`, so the bearer guard applies.
+// User writes (spec 4.3). Registered inside `graphRoutes`, so the bearer guard applies.
 // ---------------------------------------------------------------------------
 
 type Body = Record<string, unknown>;
@@ -357,10 +362,12 @@ function userWriteRoutes(app: FastifyInstance, store: Store): void {
   app.patch<{ Params: { x: string } }>('/v1.0/users/:x', async (req, reply) => {
     const user = findUser(store, req.params.x);
     if (!user) return reply.code(404).send(notFound(req.params.x));
-    const changes = writableFields(asBody(req.body));
-    if (Object.keys(changes).length === 0) {
-      return reply.code(400).send(badRequest('The request body contains no updatable user properties.'));
+    if (req.body != null && (typeof req.body !== 'object' || Array.isArray(req.body))) {
+      return reply.code(400).send(badRequest('The request body must be a JSON object.'));
     }
+    const changes = writableFields(asBody(req.body));
+    // Nothing we know how to update: accept it unchanged, like Graph (spec 4: never require more).
+    if (Object.keys(changes).length === 0) return reply.code(204).send();
     if (changes.userPrincipalName !== undefined && upnTaken(store, String(changes.userPrincipalName), user.id)) {
       return reply.code(400).send(badRequest(DUPLICATE_UPN));
     }

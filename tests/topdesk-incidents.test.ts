@@ -55,6 +55,20 @@ describe('TOPdesk incidents', () => {
     expect(res.body).toEqual([{ message: expect.any(String) }]);
   });
 
+  it('POST takes a caller form as given: an unregistered caller, or id and email together (only callerLookup is strict)', async () => {
+    const external = await api()
+      .post('/tas/api/incidents')
+      .send({ briefDescription: 'Externe melding', caller: { dynamicName: 'Externe beller', email: 'beller@extern.nl' } });
+    expect(external.status).toBe(201);
+    expect(external.body.caller).toEqual({ dynamicName: 'Externe beller', email: 'beller@extern.nl' });
+
+    const both = await api()
+      .post('/tas/api/incidents')
+      .send({ briefDescription: 'Beide velden', caller: { id: FATIMA_ID, email: FATIMA } });
+    expect(both.status).toBe(201);
+    expect(both.body.caller).toMatchObject({ id: FATIMA_ID, email: FATIMA });
+  });
+
   it('POST accepts a briefDescription of exactly 80 chars', async () => {
     const res = await api()
       .post('/tas/api/incidents')
@@ -127,6 +141,20 @@ describe('TOPdesk incidents', () => {
     expect(res.body.number).toBe('I 2610 010');
     const events = (await request(app.server).get('/admin/state')).body.events;
     expect(events).toContainEqual(expect.objectContaining({ system: 'topdesk', entity: 'incident', action: 'created' }));
+  });
+
+  it.each([
+    ['POST', '/tas/api/incidents'],
+    ['GET', '/tas/api/incidents'],
+    ['GET', '/tas/api/incidents/id/x'],
+    ['GET', '/tas/api/incidents/number/I%202610%20001'],
+    ['PATCH', '/tas/api/incidents/id/x'],
+    ['PATCH', '/tas/api/incidents/number/I%202610%20001'],
+  ] as const)('%s %s answers 401 without Basic auth and changes nothing', async (method, url) => {
+    const call = request(app.server)[method.toLowerCase() as 'get' | 'post' | 'patch'](url);
+    const res = method === 'GET' ? await call : await call.send({ briefDescription: 'x', callerLookup: { email: FATIMA } });
+    expect(res.status).toBe(401);
+    expect(app.store.events).toEqual([]);
   });
 
   describe('list', () => {
