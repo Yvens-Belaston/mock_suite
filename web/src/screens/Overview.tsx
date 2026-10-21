@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { SCREENS, Shell } from '../components/Shell';
+import { SCREENS, Shell, useLiveState } from '../components/Shell';
 
 /** Quadrants in keyboard order: `1`–`4` maximise these. */
 const QUADRANTS = ['topdesk', 'entra', 'jira', 'teams'] as const;
@@ -70,9 +70,40 @@ export function Overview() {
             </div>
           ))}
         </div>
-        {/* Ticket 32: the request bar goes here, under the grid. */}
+        <RequestBar />
       </div>
     </Shell>
+  );
+}
+
+interface RequestLogEntry {
+  method: string;
+  path: string;
+  status: number;
+  ms: number;
+  at: string;
+}
+
+/** How many mock API calls the bar shows. */
+const BAR_SIZE = 5;
+
+/** Thin bottom bar with the last mock API calls, newest first (spec 6.5). */
+function RequestBar() {
+  const { full } = useLiveState('admin'); // refetches on every `admin`/`request` change event
+  const requests = (full?.requests ?? []) as RequestLogEntry[];
+  const last = requests.slice(-BAR_SIZE).reverse();
+  return (
+    <ul
+      aria-label="Laatste API-aanroepen"
+      className="flex h-8 shrink-0 items-center gap-4 overflow-hidden border-t border-gray-200 bg-gray-50 px-3 font-mono text-[13px] whitespace-nowrap text-gray-700"
+    >
+      {last.length === 0 && <li className="list-none text-gray-400">Nog geen API-aanroepen</li>}
+      {last.map((r, i) => (
+        <li key={`${r.at}-${r.method}-${r.path}-${i}`} className={r.status >= 400 ? 'text-red-700' : undefined}>
+          {`${r.method} ${r.path} ${r.status} · ${r.ms} ms`}
+        </li>
+      ))}
+    </ul>
   );
 }
 
