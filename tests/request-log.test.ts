@@ -9,10 +9,7 @@ let app: FastifyInstance | undefined;
 async function start(options: ServerOptions = {}): Promise<FastifyInstance> {
   app = buildServer({ responseDelayMs: 0, ...options });
   app.post('/v1.0/users', async (_req, reply) => reply.code(201).send({ id: 'u-1' }));
-  // Route files register as plugins; the hooks must reach into their encapsulated context.
-  app.register(async (plugin) => {
-    plugin.post('/:tenant/oauth2/v2.0/token', async () => ({ access_token: 'x' }));
-  });
+  // The token route is the real one from `graphRoutes`, an encapsulated plugin: the hooks must reach into it.
   await app.ready();
   return app;
 }
