@@ -112,11 +112,11 @@ describe('GET /events', () => {
 
   it('pushes an admin/request/created change for a logged mock API call (single emitter)', async () => {
     app = buildServer({ responseDelayMs: 0 });
-    app.post('/v1.0/users', async (_req, reply) => reply.code(201).send({ id: 'u-1' }));
+    app.post('/v1.0/standIn', async (_req, reply) => reply.code(201).send({ id: 'u-1' }));
     baseUrl = await app.listen({ port: 0, host: '127.0.0.1' });
     const stream = await connect();
 
-    const res = await fetch(`${baseUrl}/v1.0/users`, {
+    const res = await fetch(`${baseUrl}/v1.0/standIn`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ displayName: 'Sanne de Vries' }),
@@ -129,7 +129,7 @@ describe('GET /events', () => {
       system: 'admin',
       entity: 'request',
       action: 'created',
-      summary: expect.stringContaining('POST /v1.0/users 201'),
+      summary: expect.stringContaining('POST /v1.0/standIn 201'),
     });
   });
 
