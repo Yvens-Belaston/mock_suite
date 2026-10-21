@@ -1,10 +1,12 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { adminRoutes } from './routes/admin.js';
 import { eventsRoutes } from './routes/events.js';
+import { graphRoutes } from './routes/graph.js';
 import { jiraRoutes } from './routes/jira.js';
 import { teamsRoutes } from './routes/teams.js';
+import { uiRoutes } from './routes/ui.js';
 import { createStore, type Store } from './store.js';
 
 declare module 'fastify' {
@@ -18,6 +20,8 @@ export interface ServerOptions {
   store?: Store;
   /** SSE heartbeat interval for `/events`; defaults to 15 s (spec section 7). */
   heartbeatMs?: number;
+  /** Built screens (`npm run build:web`) served at `/ui/`; defaults to `<repo>/web/dist`. */
+  webDist?: string;
   /** Artificial latency on mock API routes. Defaults to `RESPONSE_DELAY_MS`, else 150. */
   responseDelayMs?: number;
   /** Share (0-1) of mock API calls answered with an empty 503. Defaults to `FAIL_RATE`, else 0. */
@@ -48,6 +52,9 @@ function isSimulatedCall(req: FastifyRequest): boolean {
   return isMockApiPath(pathOf(req)) && req.headers['x-mock-source'] !== 'ui';
 }
 
+/** Resolves to `<repo>/web/dist` from both `src/` (tsx/vitest) and `dist/` (node). */
+export const DEFAULT_WEB_DIST = fileURLToPath(new URL('../web/dist/', import.meta.url));
+
 export function buildServer(options: ServerOptions = {}): FastifyInstance {
   const app = Fastify({ logger: false });
   const store = options.store ?? createStore();
@@ -74,8 +81,10 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
   app.get('/health', async () => ({ status: 'ok' }));
   app.register(adminRoutes(store));
   app.register(eventsRoutes(store, options.heartbeatMs));
+  app.register(graphRoutes(store));
   app.register(jiraRoutes(store));
   app.register(teamsRoutes(store));
+  app.register(uiRoutes(options.webDist ?? DEFAULT_WEB_DIST));
 
   return app;
 }
