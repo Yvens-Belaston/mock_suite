@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { SCREENS, Shell, type ScreenKey } from './components/Shell';
+import { Jira } from './screens/Jira';
 import { Overview } from './screens/Overview';
 import './index.css';
 
@@ -14,16 +15,18 @@ function Placeholder({ screen }: { screen: ScreenKey }) {
   );
 }
 
+const SCREEN_COMPONENTS: Partial<Record<ScreenKey, JSX.Element>> = {
+  overview: <Overview />,
+  jira: <Jira />,
+};
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter basename="/ui">
       <Routes>
-        {(Object.keys(SCREENS) as ScreenKey[])
-          .filter((key) => key !== 'overview')
-          .map((key) => (
-            <Route key={key} path={`/${key}`} element={<Placeholder screen={key} />} />
-          ))}
-        <Route path="/overview" element={<Overview />} />
+        {(Object.keys(SCREENS) as ScreenKey[]).map((key) => (
+          <Route key={key} path={`/${key}`} element={SCREEN_COMPONENTS[key] ?? <Placeholder screen={key} />} />
+        ))}
         <Route path="*" element={<Navigate to="/overview" replace />} />
       </Routes>
     </BrowserRouter>
