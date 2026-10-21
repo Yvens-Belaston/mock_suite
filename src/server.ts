@@ -3,6 +3,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 import { adminRoutes } from './routes/admin.js';
 import { eventsRoutes } from './routes/events.js';
+import { jiraRoutes } from './routes/jira.js';
 import { createStore, type Store } from './store.js';
 
 declare module 'fastify' {
@@ -72,6 +73,7 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
   app.get('/health', async () => ({ status: 'ok' }));
   app.register(adminRoutes(store));
   app.register(eventsRoutes(store, options.heartbeatMs));
+  app.register(jiraRoutes(store));
 
   return app;
 }
