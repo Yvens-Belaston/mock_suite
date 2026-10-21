@@ -1,6 +1,8 @@
 import { X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Shell, useLiveState } from '../components/Shell';
+import { Wijzigingen } from './TopdeskChanges';
+import { Personen } from './TopdeskPersons';
 
 /** Stored TOPdesk incident as returned by `/admin/state`.topdesk.incidents (spec section 3). */
 export interface Incident {
@@ -27,7 +29,7 @@ export interface TopdeskState {
   [key: string]: unknown;
 }
 
-type Live = ReturnType<typeof useLiveState<TopdeskState>>;
+export type Live = ReturnType<typeof useLiveState<TopdeskState>>;
 
 const TABS = ['Meldingen', 'Wijzigingen', 'Personen'] as const;
 type Tab = (typeof TABS)[number];
@@ -67,16 +69,12 @@ export function Topdesk() {
       </div>
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
         {tab === 'Meldingen' && <Meldingen live={live} />}
-        {/* Ticket 17: replace these placeholders with the Wijzigingen and Personen tabs. */}
-        {tab === 'Wijzigingen' && <TabPlaceholder />}
-        {tab === 'Personen' && <TabPlaceholder />}
+        {/* Ticket 17: Wijzigingen and Personen tabs live in TopdeskChanges.tsx / TopdeskPersons.tsx. */}
+        {tab === 'Wijzigingen' && <Wijzigingen live={live} />}
+        {tab === 'Personen' && <Personen live={live} />}
       </div>
     </Shell>
   );
-}
-
-function TabPlaceholder() {
-  return <p className="p-6 text-gray-500">Volgt.</p>;
 }
 
 function Meldingen({ live }: { live: Live }) {
@@ -126,7 +124,7 @@ function Meldingen({ live }: { live: Live }) {
   );
 }
 
-function Th({ children }: { children: ReactNode }) {
+export function Th({ children }: { children: ReactNode }) {
   return <th scope="col" className="px-3 py-2 font-medium whitespace-nowrap">{children}</th>;
 }
 
