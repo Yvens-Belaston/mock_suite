@@ -1,4 +1,6 @@
-import { Shell, useLiveState } from '../components/Shell';
+import { ChevronDown, ChevronRight, X } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { FLASH_MS, Shell, useChangeEvents, useLiveState } from '../components/Shell';
 
 /** A user as stored in `/admin/state`.graph (see `GraphUser` in `src/routes/graph.ts`). */
 export interface EntraUser {
@@ -117,11 +119,241 @@ export function UsersTable({
   );
 }
 
+/** One `state.requests` entry (see the request log in `src/server.ts`). */
+export interface LoggedRequest {
+  method: string;
+  path: string;
+  status: number;
+  at: string;
+}
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+/** Dutch date format, `dd-MM-yyyy HH:mm` (spec 6.6). */
+export function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function decodePath(path: string): string {
+  try {
+    return decodeURIComponent(path);
+  } catch {
+    return path;
+  }
+}
+
+/** Graph calls (current run) whose path names the user's id or UPN, newest first. */
+export function auditFor(user: EntraUser, requests: LoggedRequest[]): LoggedRequest[] {
+  const id = user.id.toLowerCase();
+  const upn = user.userPrincipalName.toLowerCase();
+  return requests
+    .filter((r) => {
+      if (!r.path.startsWith('/v1.0/')) return false;
+      const path = decodePath(r.path).toLowerCase();
+      return path.includes(id) || path.includes(upn);
+    })
+    .reverse();
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium tracking-wide text-gray-500 uppercase">{label}</dt>
+      <dd className="mt-0.5">{children}</dd>
+    </div>
+  );
+}
+
+const none = (text: string) => <span className="text-gray-400">{text}</span>;
+
+/** Side panel: the proof of what happened to one account. */
+export function UserPanel({
+  user,
+  state,
+  requests,
+  onClose,
+}: {
+  user: EntraUser;
+  state: GraphState;
+  requests: LoggedRequest[];
+  onClose: () => void;
+}) {
+  const groups = state.groups.filter((g) => g.memberIds.includes(user.id));
+  const manager = user.managerId ? state.users.find((u) => u.id === user.managerId) : undefined;
+  const audit = auditFor(user, requests);
+  return (
+    <aside aria-label={user.displayName} className="w-96 shrink-0 overflow-y-auto border-l border-gray-200 bg-white p-4">
+      <div className="mb-4 flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <h2 className="font-semibold text-gray-900">{user.displayName}</h2>
+          <p className="break-all text-gray-500">{user.userPrincipalName}</p>
+        </div>
+        <button type="button" aria-label="Sluiten" onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <X className="h-5 w-5" aria-hidden="true" />
+        </button>
+      </div>
+      <dl className="space-y-3">
+        <Field label="Status">
+          <StatusBadge enabled={user.accountEnabled} />
+        </Field>
+        {user.signInSessionsRevokedAt && (
+          <p className="rounded bg-red-50 px-2 py-1 font-medium text-red-700">
+            Sessies ingetrokken {formatDateTime(user.signInSessionsRevokedAt)}
+          </p>
+        )}
+        <Field label="Groepen">
+          {groups.length ? (
+            <ul className="flex flex-wrap gap-1">
+              {groups.map((g) => (
+                <li key={g.id} className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-700">
+                  {g.displayName}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            none('Geen')
+          )}
+        </Field>
+        <Field label="Licenties">
+          {user.assignedLicenses.length ? <LicenceChips user={user} skus={state.skus} /> : none('Geen')}
+        </Field>
+        <Field label="Manager">{manager?.displayName ?? none('Geen')}</Field>
+        <Field label="Datum in dienst">
+          {user.employeeHireDate ? formatDateTime(user.employeeHireDate).slice(0, 10) : none('Onbekend')}
+        </Field>
+      </dl>
+      <h3 className="mt-5 mb-2 font-semibold text-gray-900">Audit (Graph-aanroepen)</h3>
+      {audit.length === 0 && none('Nog geen aanroepen in deze run.')}
+      <ul aria-label="Audit" className="space-y-1 font-mono text-xs">
+        {audit.map((r, i) => (
+          <li key={`${r.at}-${i}`} className="flex gap-2 border-b border-gray-100 py-1">
+            <span className="shrink-0 text-gray-500">{formatDateTime(r.at)}</span>
+            <span className="break-all">
+              <span className="font-semibold">{r.method}</span> {r.path}
+            </span>
+            <span className={`ml-auto shrink-0 ${r.status >= 400 ? 'text-red-600' : 'text-green-700'}`}>{r.status}</span>
+          </li>
+        ))}
+      </ul>
+    </aside>
+  );
+}
+
+/** `groupId:memberId` pairs added since the previous state, kept for FLASH_MS. */
+function useNewMembers(groups: EntraGroup[]): Set<string> {
+  const prev = useRef<Map<string, string[]>>();
+  const [fresh, setFresh] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    const before = prev.current;
+    prev.current = new Map(groups.map((g) => [g.id, g.memberIds]));
+    if (!before) return;
+    const added = new Set<string>();
+    for (const g of groups) {
+      const old = before.get(g.id) ?? [];
+      for (const m of g.memberIds) if (!old.includes(m)) added.add(`${g.id}:${m}`);
+    }
+    if (added.size === 0) return;
+    setFresh(added);
+    const t = setTimeout(() => setFresh(new Set()), FLASH_MS);
+    return () => clearTimeout(t);
+  }, [groups]);
+  return fresh;
+}
+
+/** Groups with member count; expand to see members; new members flash. */
+export function GroupsList({ state, changed }: { state: GraphState; changed: Set<string> }) {
+  const [open, setOpen] = useState<Set<string>>(() => new Set());
+  const fresh = useNewMembers(state.groups);
+  const toggle = (id: string) =>
+    setOpen((s) => {
+      const n = new Set(s);
+      if (!n.delete(id)) n.add(id);
+      return n;
+    });
+  return (
+    <ul className="divide-y divide-gray-100 border border-gray-200 bg-white">
+      {state.groups.map((g) => {
+        const expanded = open.has(g.id);
+        const Chevron = expanded ? ChevronDown : ChevronRight;
+        return (
+          <li key={g.id} data-testid={`group-${g.id}`} className={changed.has(g.id) ? 'flash' : ''}>
+            <button
+              type="button"
+              aria-expanded={expanded}
+              onClick={() => toggle(g.id)}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-gray-50"
+            >
+              <Chevron className="h-4 w-4 text-gray-400" aria-hidden="true" />
+              <span className="font-medium text-gray-900">{g.displayName}</span>
+              <span className="ml-auto rounded-full bg-blue-50 px-2 py-0.5 text-sm font-medium text-blue-700">
+                <span data-testid="member-count">{g.memberIds.length}</span> leden
+              </span>
+            </button>
+            {expanded && (
+              <ul className="pb-2 pl-9">
+                {g.memberIds.map((id) => {
+                  const u = state.users.find((x) => x.id === id);
+                  return (
+                    <li key={id} className={`py-1 ${fresh.has(`${g.id}:${id}`) ? 'flash' : ''}`}>
+                      {u?.displayName ?? id} <span className="text-gray-500">{u?.userPrincipalName}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+type Tab = 'users' | 'groups';
+const TABS: [Tab, string][] = [
+  ['users', 'Gebruikers'],
+  ['groups', 'Groepen'],
+];
+
 export function Entra() {
-  const { state, changed } = useLiveState<GraphState>('graph');
+  const { state, full, changed, refetch } = useLiveState<GraphState>('graph');
+  const [tab, setTab] = useState<Tab>('users');
+  const [selectedId, setSelectedId] = useState<string>();
+  const selected = tab === 'users' ? state?.users.find((u) => u.id === selectedId) : undefined;
+  // A call's log entry lands after its graph change event: refresh the open audit list on new log entries.
+  useChangeEvents((e) => {
+    if (selected && e.system === 'admin' && e.entity === 'request') void refetch();
+  });
+  const requests = (full?.requests ?? []) as LoggedRequest[];
   return (
     <Shell screen="entra">
-      <div className="p-4">{state && <UsersTable state={state} changed={changed} />}</div>
+      <div className="flex min-h-0 flex-1">
+        <div className="min-w-0 flex-1 p-4">
+          <div role="tablist" className="mb-3 flex gap-1 border-b border-gray-200">
+            {TABS.map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={tab === key}
+                onClick={() => setTab(key)}
+                className={`-mb-px border-b-2 px-3 py-1.5 font-medium ${tab === key ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {state &&
+            (tab === 'users' ? (
+              <UsersTable state={state} changed={changed} onSelect={(u) => setSelectedId(u.id)} />
+            ) : (
+              <GroupsList state={state} changed={changed} />
+            ))}
+        </div>
+        {state && selected && (
+          <UserPanel user={selected} state={state} requests={requests} onClose={() => setSelectedId(undefined)} />
+        )}
+      </div>
     </Shell>
   );
 }
