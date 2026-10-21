@@ -1,13 +1,13 @@
 # mock-suite
 
 One Docker service that simulates **TOPdesk**, **Microsoft Entra ID (Graph)**, **Jira Cloud** and **Microsoft Teams**
-for the Ofelia (Bonita) demo to Gemeente Amsterdam. Each mock exposes the real API paths and payload shapes, and each
+for the Ofelia (Bonita) demo to Gemeente Amsterdam. Each simulated system exposes the real API paths and payload shapes, and each
 system has a live screen (labelled `Gesimuleerd`) the audience can watch. Full spec: `.scratch/mock-suite/spec.md`.
 
 State lives in memory only. The seed data in `seed/*.json` loads on every start and on every reset.
 
 > **Docker status:** the `Dockerfile` and `docker-compose.yml` are checked by `tests/docker-files.test.ts` as text only.
-> No one has built or run the image yet (ticket 38). If `docker compose up` fails, use [Without Docker](#without-docker),
+> The image is not yet verified with Docker. If `docker compose up` fails, use [Without Docker](#without-docker),
 > which is tested.
 
 ## 1. Start
@@ -65,10 +65,10 @@ Restarting the container also resets everything, because state is never written 
 
 ## 3. Connect Bonita
 
-The mock calls Bonita in two places:
+The mock suite calls Bonita in two places:
 
 - **Callback A:** the TOPdesk form "Nieuwe aanvraag indiensttreding" starts the onboarding process.
-- **Callback B:** a Jira issue with the label `case-{caseId}` moves to Done, and the mock sends the message `accessGranted`.
+- **Callback B:** a Jira issue with the label `case-{caseId}` moves to Done, and the mock suite sends the message `accessGranted`.
 
 Bonita settings are environment variables. Set them in `docker-compose.yml` under `mock-suite.environment`:
 
@@ -76,7 +76,7 @@ Bonita settings are environment variables. Set them in `docker-compose.yml` unde
 | --- | --- | --- |
 | `BONITA_ENABLED` | `true` | `false` skips both callbacks. The screens show `Ofelia niet verbonden` and local state still updates |
 | `BONITA_URL` | `http://bonita:8080/bonita` | Bonita base URL, as seen from the mock-suite container |
-| `BONITA_USER` / `BONITA_PASSWORD` | `walter.bates` / `bpm` | Technical user the mock logs in with |
+| `BONITA_USER` / `BONITA_PASSWORD` | `walter.bates` / `bpm` | Technical user the mock suite logs in with |
 | `BONITA_ONBOARDING_PROCESS` | `MedewerkerOnboarding` | Process started by callback A, and target of callback B |
 | `BONITA_MESSAGE_ACCESS` | `accessGranted` | Message name for callback B |
 | `RESPONSE_DELAY_MS` | `150` | Added latency on mock API calls, so they feel real |
@@ -84,7 +84,7 @@ Bonita settings are environment variables. Set them in `docker-compose.yml` unde
 | `TENANT_ID` | `demo-amsterdam` | Expected tenant in the token URL. Any tenant is accepted; the log says whether it matches |
 | `PORT` | `8080` | HTTP port inside the container |
 
-A Bonita error never crashes the mock. The TOPdesk screen shows a red toast with the HTTP status, and the Jira card gets a red chip.
+A Bonita error never crashes the mock suite. The TOPdesk screen shows a red toast with the HTTP status, and the Jira card gets a red chip.
 
 The two network directions use different addresses. Pick the case that matches where Bonita runs.
 
@@ -124,7 +124,7 @@ machine, use `http://localhost:8090` instead.
 | Teams #Automation CoE | `http://mock-suite:8080/teams/hook/automation-coe` | Same, for that channel's Workflow |
 | Teams #Algemeen | `http://mock-suite:8080/teams/hook/algemeen` | Same, for that channel's Workflow |
 
-Credentials in the demo: the mock accepts any value.
+Credentials in the demo: the simulated systems accept any value.
 
 - TOPdesk and Jira need an `Authorization: Basic …` header.
 - Graph needs `Authorization: Bearer …`, with a token from the token URL (any tenant segment, e.g. `demo-amsterdam.onmicrosoft.com`).
@@ -155,9 +155,9 @@ Callback A sends the form to Bonita under one contract input. The input name and
 - Each key in `fields` is a form field, and its value is the contract field name in Bonita. To rename a field, change
   the value. To stop sending a field, delete its line. Values are passed through as they are: no type conversion.
 - Form fields: `firstName`, `lastName`, `startDate`, `department`, `role`, `location`, `equipmentProfile`, `parking`,
-  `applications`, `managerEmail`, plus `topdeskIncidentNumber`, which the mock adds.
+  `applications`, `managerEmail`, plus `topdeskIncidentNumber`, which the mock suite adds.
 
-The mock reads the file each time it starts a case, so an edit takes effect on the next form submit without a
+The mock suite reads the file each time it starts a case, so an edit takes effect on the next form submit without a
 restart. Compose mounts `./config` into the container (read-only), so edit the file in the repo on your machine.
 
 The process name and the callback B message name are not in this file. They are the environment variables
@@ -173,14 +173,14 @@ The process name and the callback B message name are not in this file. They are 
 4. Teams: the escalation card posted to #Facilities.
 5. Offboarding: the account disabled, sessions revoked, the VPN group removed, then the TOPdesk person archived.
 
-Run it with the mock started with `BONITA_ENABLED=false`. With Compose, that means changing `BONITA_ENABLED` to
+Run it with the mock suite started with `BONITA_ENABLED=false`. With Compose, that means changing `BONITA_ENABLED` to
 `"false"` in `docker-compose.yml`, because a shell variable does not override that value. Then:
 
 ```bash
 curl -X POST http://localhost:8090/admin/reset   # the script creates Sanne; a second run without reset fails
 scripts/demo-run.sh                              # waits 2 s after each call
 PAUSE=0 scripts/demo-run.sh                      # no waiting
-BASE=http://localhost:8080 scripts/demo-run.sh   # another mock address (default http://localhost:8090)
+BASE=http://localhost:8080 scripts/demo-run.sh   # another mock suite address (default http://localhost:8090)
 ```
 
 You need `bash`, `curl` and `node` on your machine (`node` reads the JSON replies). The script stops with a non-zero

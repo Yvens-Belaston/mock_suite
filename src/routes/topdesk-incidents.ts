@@ -35,7 +35,7 @@ const CREATE_FIELDS = [
   'processingStatus', 'externalNumber', 'callType', 'entryType', 'impact', 'urgency', 'priority',
 ];
 
-/** The only FIQL filters the mock supports on the incident list (spec section 4.2). */
+/** The only FIQL filters the simulated TOPdesk supports on the incident list (spec section 4.2). */
 const LIST_QUERY_FIELDS = ['closed', 'externalNumber'];
 
 const COUNTER = 'topdesk.incident';

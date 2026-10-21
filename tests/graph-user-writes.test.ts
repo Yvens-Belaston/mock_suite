@@ -287,7 +287,7 @@ describe('POST /v1.0/users/{x}/revokeSignInSessions', () => {
   });
 });
 
-describe('offboarding example from the ticket', () => {
+describe('offboarding example', () => {
   it('disables the account and ends the sessions, both visible on reset-free state', async () => {
     expect((await api().patch(`/v1.0/users/${PIETER}`).set(AUTH).send({ accountEnabled: false })).status).toBe(204);
     expect((await api().post(`/v1.0/users/${PIETER}/revokeSignInSessions`).set(AUTH)).body.value).toBe(true);

@@ -80,14 +80,14 @@ export function graphRoutes(store: Store) {
       return { '@odata.context': `${ODATA}#users/$entity`, ...project(user, req.query.$select) };
     });
 
-    // Ticket 09: user writes (POST/PATCH user, manager $ref, assignLicense, revokeSignInSessions).
+    // User writes (POST/PATCH user, manager $ref, assignLicense, revokeSignInSessions).
     userWriteRoutes(app, store);
 
     groupRoutes(app, store);
   };
 }
 
-// ---- Groups and memberships (ticket 10) -------------------------------------------------------
+// ---- Groups and memberships ------------------------------------------------------------------
 
 /** A group as stored in `state.graph.groups` (spec section 3). */
 export interface GraphGroup {
@@ -189,7 +189,7 @@ function findGroup(store: Store, gid: string): GraphGroup | undefined {
   return groups(store).find((g) => g.id === gid);
 }
 
-// ---- end groups (ticket 10) -------------------------------------------------------------------
+// ---- end groups ------------------------------------------------------------------------------
 
 const ODATA = 'https://graph.microsoft.com/v1.0/$metadata';
 
@@ -275,7 +275,7 @@ export function project(user: GraphUser, select?: string): Record<string, unknow
 }
 
 // ---------------------------------------------------------------------------
-// Ticket 09: user writes (spec 4.3). Registered inside `graphRoutes`, so the bearer guard applies.
+// User writes (spec 4.3). Registered inside `graphRoutes`, so the bearer guard applies.
 // ---------------------------------------------------------------------------
 
 type Body = Record<string, unknown>;

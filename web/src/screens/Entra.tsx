@@ -59,7 +59,7 @@ export function LicenceChips({ user, skus }: { user: EntraUser; skus: EntraSku[]
 
 const COLUMNS = ['Weergavenaam', 'UPN', 'Functie', 'Afdeling', 'Manager', 'Licenties', 'Status'];
 
-/** Users table, newest/most recently changed first. `onSelect` is the hook for the side panel (ticket 12). */
+/** Users table, newest/most recently changed first. `onSelect` opens the side panel. */
 export function UsersTable({
   state,
   changed,

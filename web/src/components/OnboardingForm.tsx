@@ -2,7 +2,7 @@ import { UserPlus, X } from 'lucide-react';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { toast } from './Shell';
 
-/** Section 5 contract fields (the mock adds `topdeskIncidentNumber`). */
+/** Section 5 contract fields (the mock suite adds `topdeskIncidentNumber`). */
 export interface OnboardingForm {
   firstName: string;
   lastName: string;

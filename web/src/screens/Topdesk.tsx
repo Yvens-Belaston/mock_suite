@@ -43,7 +43,7 @@ export function Topdesk() {
       </div>
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
         {tab === 'Meldingen' && <Meldingen live={live} />}
-        {/* Ticket 17: Wijzigingen and Personen tabs live in TopdeskChanges.tsx / TopdeskPersons.tsx. */}
+        {/* Wijzigingen and Personen tabs live in components/TopdeskChanges.tsx / TopdeskPersons.tsx. */}
         {tab === 'Wijzigingen' && <Wijzigingen live={live} />}
         {tab === 'Personen' && <Personen live={live} />}
       </div>

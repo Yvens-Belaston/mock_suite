@@ -23,12 +23,12 @@ export type ColumnName = (typeof COLUMNS)[number];
 /** Transition ids from `seed/jira.json` per target status. */
 const TRANSITION_TO: Record<ColumnName, string> = { 'To Do': '11', 'In Progress': '21', Done: '31' };
 
-/** Screen-side auth for the mock Jira API (any Basic credentials pass). */
+/** Screen-side auth for the simulated Jira API (any Basic credentials pass). */
 const UI_AUTH = `Basic ${btoa('presenter:ui')}`;
 
 /**
  * Moves an issue to `status` through the same route Bonita uses (`X-Mock-Source: ui`), so callback B still fires.
- * The board refreshes from the resulting change event. Shared by the buttons (21) and drag-and-drop (23).
+ * The board refreshes from the resulting change event. Shared by the card buttons and drag-and-drop.
  */
 export async function moveIssue(key: string, status: ColumnName): Promise<void> {
   const res = await fetch(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`, {
@@ -39,7 +39,7 @@ export async function moveIssue(key: string, status: ColumnName): Promise<void> 
   if (!res.ok) toast(`${key} verplaatsen mislukt (${res.status})`, 'error');
 }
 
-// --- Drag and drop (ticket 23): native HTML5; a drop maps column -> transition by `to.name` via moveIssue. ---
+// --- Drag and drop: native HTML5; a drop maps column -> transition by `to.name` via moveIssue. ---
 const DRAG_TYPE = 'application/x-jira-issue';
 
 function startCardDrag(e: DragEvent<HTMLElement>, issue: JiraIssue) {
