@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { SCREENS, Shell, type ScreenKey } from './components/Shell';
+import { Entra } from './screens/Entra';
 import { Jira } from './screens/Jira';
 import { Overview } from './screens/Overview';
 import { Teams } from './screens/Teams';
@@ -19,6 +20,7 @@ function Placeholder({ screen }: { screen: ScreenKey }) {
 
 const SCREEN_COMPONENTS: Partial<Record<ScreenKey, JSX.Element>> = {
   overview: <Overview />,
+  entra: <Entra />,
   jira: <Jira />,
   teams: <Teams />,
   topdesk: <Topdesk />,
