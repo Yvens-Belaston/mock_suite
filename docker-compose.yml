@@ -1,0 +1,25 @@
+services:
+  mock-suite:
+    build: .
+    image: ofelia/mock-suite:0.1.0
+    ports: ["8090:8080"]
+    environment:
+      BONITA_ENABLED: "true"
+      BONITA_URL: http://bonita:8080/bonita
+      # Bonita running on the host (Studio/Tomcat), not in compose:
+      # BONITA_URL: http://host.docker.internal:8080/bonita
+      BONITA_USER: walter.bates
+      BONITA_PASSWORD: bpm
+      RESPONSE_DELAY_MS: "150"
+    volumes:
+      - ./seed:/app/seed:ro
+      - ./config:/app/config:ro
+    networks: [demo]
+
+  # bonita:
+  #   image: <presenter's Bonita image, pinned version>
+  #   ports: ["8080:8080"]
+  #   networks: [demo]
+
+networks:
+  demo: {}
