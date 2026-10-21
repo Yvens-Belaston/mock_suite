@@ -26,6 +26,20 @@ export interface ChangeEvent extends Change {
   at: string;
 }
 
+/** One mock API call as the presenter sees it in `/admin/requests` (spec section 4.6). */
+export interface RequestLogEntry {
+  method: string;
+  /** Without query string. */
+  path: string;
+  body: unknown;
+  status: number;
+  ms: number;
+  at: string;
+}
+
+/** How many request log entries the store keeps (oldest dropped first). */
+export const REQUEST_LOG_SIZE = 500;
+
 export interface Store {
   /** The live state. Read it freely; write only through `update`. */
   get(): State;
@@ -41,11 +55,16 @@ export interface Store {
   /** Take the next number of a counter registered with `defineCounter`. */
   next(name: string): number;
   /**
-   * Emits `'change'` with the `ChangeEvent` after every `update`, and after `reset` with
+   * The single change emitter (feeds `GET /events`). Emits `'change'` with the `ChangeEvent` after
+   * every `update`, after every `logRequest` (`admin`/`request`/`created`), and after `reset` with
    * `{ system: 'admin', entity: 'state', action: 'reset', id: '', summary, at }`.
    */
   readonly emitter: EventEmitter;
-  /** Put every system back to the seed, restart counters from the seed and clear `events`. */
+  /** The last `REQUEST_LOG_SIZE` mock API calls, oldest first. */
+  readonly requests: readonly RequestLogEntry[];
+  /** Append to the request log and emit an `admin`/`request`/`created` change on `emitter`. */
+  logRequest(entry: Omit<RequestLogEntry, 'at'>): RequestLogEntry;
+  /** Put every system back to the seed, restart counters from the seed, clear `events` and `requests`. */
   reset(): void;
 }
 
@@ -65,12 +84,32 @@ export function createStore(seedDir: string = DEFAULT_SEED_DIR): Store {
   let counters = new Map<string, number>();
   const emitter = new EventEmitter();
   emitter.setMaxListeners(0); // one listener per open /events connection
+  let requests: RequestLogEntry[] = [];
+  let requestSeq = 0;
 
   return {
     get: () => state,
     emitter,
     get events() {
       return events;
+    },
+    get requests() {
+      return requests;
+    },
+    logRequest(entry) {
+      const logged: RequestLogEntry = { ...entry, at: new Date().toISOString() };
+      requests.push(logged);
+      if (requests.length > REQUEST_LOG_SIZE) requests.splice(0, requests.length - REQUEST_LOG_SIZE);
+      const change: ChangeEvent = {
+        system: 'admin',
+        entity: 'request',
+        action: 'created',
+        id: String(++requestSeq),
+        summary: `${logged.method} ${logged.path} ${logged.status} · ${logged.ms} ms`,
+        at: logged.at,
+      };
+      emitter.emit('change', change);
+      return logged;
     },
     update(system, fn) {
       const systemState = (state[system] ??= {});
@@ -93,6 +132,8 @@ export function createStore(seedDir: string = DEFAULT_SEED_DIR): Store {
     reset() {
       state = structuredClone(seed);
       events = [];
+      requests = [];
+      requestSeq = 0;
       counters = new Map(counterSeeds);
       // Broadcast only: not appended to the (just cleared) events log.
       emitter.emit('change', {
