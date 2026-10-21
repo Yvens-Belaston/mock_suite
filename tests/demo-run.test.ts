@@ -99,6 +99,40 @@ describe('scripts/demo-run.sh', () => {
     expect(zaak.fields.status.name).toBe('To Do');
   }, 30_000);
 
+  it('posts the spec 4.5 escalation card to the Facilities channel', async () => {
+    await fetch(`${base}/admin/reset`, { method: 'POST' });
+    const before = await (await fetch(`${base}/admin/state`)).json();
+    const count = before.teams.messages.length;
+
+    await run('bash', [SCRIPT], { env: { ...process.env, BASE: base, PAUSE: '0' } });
+
+    const state = await (await fetch(`${base}/admin/state`)).json();
+    expect(state.teams.messages).toHaveLength(count + 1);
+    const msg = state.teams.messages.at(-1);
+    expect(msg.channelId).toBe('facilities');
+    // Spec section 4.5, verbatim.
+    expect(msg.payload).toEqual({
+      type: 'message',
+      attachments: [{
+        contentType: 'application/vnd.microsoft.card.adaptive',
+        contentUrl: null,
+        content: {
+          type: 'AdaptiveCard', version: '1.5',
+          body: [{ type: 'Container', style: 'attention', items: [
+            { type: 'TextBlock', text: '⚠️ Taak verlopen: werkplek inrichten', weight: 'Bolder', size: 'Medium' },
+            { type: 'FactSet', facts: [
+              { title: 'Medewerker', value: 'Sanne de Vries' },
+              { title: 'Startdatum', value: '01-12-2026' },
+              { title: 'Verantwoordelijk', value: 'Lotte Jansen (Facilities)' },
+              { title: 'Escalatie naar', value: 'Ruben de Boer' },
+            ] },
+          ] }],
+          actions: [{ type: 'Action.OpenUrl', title: 'Open in Ofelia', url: 'http://localhost:8080/bonita/apps/userAppBonita/task-list' }],
+        },
+      }],
+    });
+  }, 30_000);
+
   it('stops with a non-zero exit when a call fails', async () => {
     await expect(
       run('bash', [SCRIPT], { env: { ...process.env, BASE: 'http://127.0.0.1:1', PAUSE: '0' } }),
