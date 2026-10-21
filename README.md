@@ -81,6 +81,7 @@ Bonita settings are environment variables. Set them in `docker-compose.yml` unde
 | `BONITA_MESSAGE_ACCESS` | `accessGranted` | Message name for callback B |
 | `RESPONSE_DELAY_MS` | `150` | Added latency on mock API calls, so they feel real |
 | `FAIL_RATE` | `0` | Share (0–1) of mock API calls that get an empty `503` |
+| `TENANT_ID` | `demo-amsterdam` | Expected tenant in the token URL. Any tenant is accepted; the log says whether it matches |
 | `PORT` | `8080` | HTTP port inside the container |
 
 A Bonita error never crashes the mock. The TOPdesk screen shows a red toast with the HTTP status, and the Jira card gets a red chip.

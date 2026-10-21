@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../src/server.js';
@@ -49,6 +49,43 @@ describe('Graph token endpoint', () => {
       .send({ scope: tokenForm.scope, grant_type: 'client_credentials' });
     expect(res.status).toBe(200);
     expect(res.body.access_token).toMatch(/^mock-/);
+  });
+});
+
+describe('Graph token endpoint and TENANT_ID', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  async function tokenLog(tenant: string): Promise<{ status: number; log: string }> {
+    vi.stubEnv('TENANT_ID', 'contoso-test');
+    const app = buildServer();
+    await app.ready();
+    const writes: string[] = [];
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
+      writes.push(String(chunk));
+      return true;
+    });
+    try {
+      const res = await request(app.server).post(`/${tenant}/oauth2/v2.0/token`).type('form').send(tokenForm);
+      return { status: res.status, log: writes.join('') };
+    } finally {
+      vi.restoreAllMocks();
+      await app.close();
+    }
+  }
+
+  it('logs the tenant from the URL and that it matches TENANT_ID', async () => {
+    const { status, log } = await tokenLog('contoso-test');
+    expect(status).toBe(200);
+    expect(log).toContain('token tenant contoso-test (matches TENANT_ID)');
+  });
+
+  it('still accepts a tenant that differs from TENANT_ID, and logs the mismatch', async () => {
+    const { status, log } = await tokenLog('other-tenant');
+    expect(status).toBe(200);
+    expect(log).toContain('token tenant other-tenant (TENANT_ID is contoso-test)');
   });
 });
 

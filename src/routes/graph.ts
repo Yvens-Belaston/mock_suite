@@ -22,6 +22,9 @@ function basicCredentials(header: string | undefined): { id?: string; secret?: s
 /** Microsoft Graph (`/v1.0`) and the Entra token endpoint (spec sections 4.1, 4.3). */
 export function graphRoutes(store: Store) {
   return async function (app: FastifyInstance): Promise<void> {
+    /** The tenant Bonita is expected to use (spec section 7); any tenant is still accepted, only logged. */
+    const tenantId = process.env.TENANT_ID || 'demo-amsterdam';
+
     // Encapsulated: only routes in this plugin parse form bodies.
     app.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, (_req, body, done) => {
       done(null, Object.fromEntries(new URLSearchParams(body as string)));
@@ -42,6 +45,8 @@ export function graphRoutes(store: Store) {
         if (missing) {
           return reply.code(400).send(tokenError(`The request body must contain the following parameter: '${missing}'.`));
         }
+        const match = req.params.tenant === tenantId ? 'matches TENANT_ID' : `TENANT_ID is ${tenantId}`;
+        process.stdout.write(`token tenant ${req.params.tenant} (${match})\n`);
         return { token_type: 'Bearer', expires_in: 3599, access_token: `mock-${randomBytes(16).toString('hex')}` };
       },
     );
