@@ -3,6 +3,11 @@
     { "id": "10000", "key": "IAM", "name": "Toegangsbeheer", "createdAt": "2026-09-01T08:00:00.000Z", "updatedAt": "2026-09-01T08:00:00.000Z" },
     { "id": "10001", "key": "AUTO", "name": "Automatisering backlog", "createdAt": "2026-09-01T08:00:00.000Z", "updatedAt": "2026-09-01T08:00:00.000Z" }
   ],
+  "transitions": [
+    { "id": "11", "name": "To Do", "to": { "id": "1", "name": "To Do" } },
+    { "id": "21", "name": "In Progress", "to": { "id": "3", "name": "In Progress" } },
+    { "id": "31", "name": "Done", "to": { "id": "10001", "name": "Done" } }
+  ],
   "users": [
     { "accountId": "712020:5f1c2a7e-0b3d-4c1e-9a6f-1d2e3f4a5b01", "accountType": "atlassian", "displayName": "Noor Hendriks", "emailAddress": "noor.hendriks@demo-amsterdam.onmicrosoft.com", "active": true, "createdAt": "2026-09-01T08:00:00.000Z", "updatedAt": "2026-09-01T08:00:00.000Z" },
     { "accountId": "712020:5f1c2a7e-0b3d-4c1e-9a6f-1d2e3f4a5b02", "accountType": "atlassian", "displayName": "Bram Smit", "emailAddress": "bram.smit@demo-amsterdam.onmicrosoft.com", "active": true, "createdAt": "2026-09-01T08:00:00.000Z", "updatedAt": "2026-09-01T08:00:00.000Z" },
