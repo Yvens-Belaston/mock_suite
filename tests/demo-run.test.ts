@@ -32,7 +32,7 @@ async function graph(path: string) {
   return res.json();
 }
 
-describe('scripts/demo-run.sh (Entra part)', () => {
+describe('scripts/demo-run.sh', () => {
   it('onboards Sanne de Vries and then runs the Graph offboarding, exiting 0', async () => {
     const { stdout } = await run('bash', [SCRIPT], { env: { ...process.env, BASE: base, PAUSE: '0' } });
     expect(stdout).toContain('offboarding');
@@ -50,6 +50,27 @@ describe('scripts/demo-run.sh (Entra part)', () => {
     const stored = state.graph.users.find((u: { id: string }) => u.id === sanne.id);
     expect(stored.managerId).toBe(PIETER);
     expect(stored.signInSessionsRevokedAt).not.toBeNull();
+  }, 30_000);
+
+  it('moves the laptop change to done and archives Sanne in TOPdesk (created first, since she is not seeded)', async () => {
+    // This test's own server (port 0), so resetting it cannot touch other worktrees.
+    await fetch(`${base}/admin/reset`, { method: 'POST' });
+    const before = await (await fetch(`${base}/admin/state`)).json();
+    const changeCount = before.topdesk.changes.length;
+
+    await run('bash', [SCRIPT], { env: { ...process.env, BASE: base, PAUSE: '0' } });
+
+    const state = await (await fetch(`${base}/admin/state`)).json();
+    expect(state.topdesk.changes).toHaveLength(changeCount + 1);
+    const laptop = state.topdesk.changes.at(-1);
+    expect(laptop.briefDescription).toMatch(/laptop/i);
+    expect(laptop.processingStatus).toBe('simple_done');
+    expect(laptop.progressTrail.map((e: { text: string }) => e.text)).toEqual(['Change aangemaakt', 'Gestart', 'Uitgevoerd']);
+
+    const sannes = state.topdesk.persons.filter((p: { email?: string }) => p.email === SANNE_UPN);
+    expect(sannes).toHaveLength(1);
+    expect(sannes[0].dynamicName).toBe('Sanne de Vries');
+    expect(sannes[0].archived).toBe(true);
   }, 30_000);
 
   it('stops with a non-zero exit when a call fails', async () => {
