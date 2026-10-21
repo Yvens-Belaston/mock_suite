@@ -110,6 +110,29 @@ describe('GET /events', () => {
     expect(data).toMatchObject({ system: 'admin', action: 'reset' });
   });
 
+  it('pushes an admin/request/created change for a logged mock API call (single emitter)', async () => {
+    app = buildServer({ responseDelayMs: 0 });
+    app.post('/v1.0/users', async (_req, reply) => reply.code(201).send({ id: 'u-1' }));
+    baseUrl = await app.listen({ port: 0, host: '127.0.0.1' });
+    const stream = await connect();
+
+    const res = await fetch(`${baseUrl}/v1.0/users`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ displayName: 'Sanne de Vries' }),
+    });
+    expect(res.status).toBe(201);
+
+    const { event, data } = await stream.nextEvent(1000);
+    expect(event).toBe('change');
+    expect(data).toMatchObject({
+      system: 'admin',
+      entity: 'request',
+      action: 'created',
+      summary: expect.stringContaining('POST /v1.0/users 201'),
+    });
+  });
+
   it('sends a `: ping` heartbeat comment on the heartbeat interval', async () => {
     await start({ heartbeatMs: 50 });
     const stream = await connect();
