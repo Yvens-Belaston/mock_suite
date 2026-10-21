@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { SCREENS, Shell, type ScreenKey } from './components/Shell';
 import { Jira } from './screens/Jira';
 import { Overview } from './screens/Overview';
+import { Teams } from './screens/Teams';
 import './index.css';
 
 // Placeholder screens; tickets 08+ replace these with web/src/screens/*.tsx (each renders <Shell screen=...>).
@@ -18,6 +19,7 @@ function Placeholder({ screen }: { screen: ScreenKey }) {
 const SCREEN_COMPONENTS: Partial<Record<ScreenKey, JSX.Element>> = {
   overview: <Overview />,
   jira: <Jira />,
+  teams: <Teams />,
 };
 
 createRoot(document.getElementById('root')!).render(
