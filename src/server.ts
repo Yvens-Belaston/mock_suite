@@ -5,6 +5,7 @@ import { adminRoutes } from './routes/admin.js';
 import { eventsRoutes } from './routes/events.js';
 import { graphRoutes } from './routes/graph.js';
 import { jiraRoutes } from './routes/jira.js';
+import { topdeskRoutes } from './routes/topdesk.js';
 import { teamsRoutes } from './routes/teams.js';
 import { uiRoutes } from './routes/ui.js';
 import { createStore, type Store } from './store.js';
@@ -83,6 +84,7 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
   app.register(eventsRoutes(store, options.heartbeatMs));
   app.register(graphRoutes(store));
   app.register(jiraRoutes(store));
+  app.register(topdeskRoutes(store), { prefix: '/tas/api' });
   app.register(teamsRoutes(store));
   app.register(uiRoutes(options.webDist ?? DEFAULT_WEB_DIST));
 
