@@ -17,6 +17,8 @@ let app: FastifyInstance;
 let base: string;
 
 beforeAll(async () => {
+  // The demo run is rehearsed with BONITA_ENABLED=false (callback B stays silent).
+  process.env.BONITA_ENABLED = 'false';
   app = buildServer({ responseDelayMs: 0 });
   // Port 0: the OS picks a free port, so parallel worktrees never collide.
   await app.listen({ port: 0, host: '127.0.0.1' });
@@ -71,6 +73,30 @@ describe('scripts/demo-run.sh', () => {
     expect(sannes).toHaveLength(1);
     expect(sannes[0].dynamicName).toBe('Sanne de Vries');
     expect(sannes[0].archived).toBe(true);
+  }, 30_000);
+
+  it('creates the SAP and Zaaksysteem access issues on the IAM board and moves one to Done', async () => {
+    await fetch(`${base}/admin/reset`, { method: 'POST' });
+    const before = await (await fetch(`${base}/admin/state`)).json();
+    const seedKeys = new Set(before.jira.issues.map((i: { key: string }) => i.key));
+
+    await run('bash', [SCRIPT], { env: { ...process.env, BASE: base, PAUSE: '0' } });
+
+    const state = await (await fetch(`${base}/admin/state`)).json();
+    const created = state.jira.issues.filter((i: { key: string }) => !seedKeys.has(i.key));
+    expect(created).toHaveLength(2);
+    const [sap, zaak] = created;
+    expect(sap.fields.project.key).toBe('IAM');
+    expect(sap.fields.summary).toMatch(/SAP/);
+    expect(zaak.fields.project.key).toBe('IAM');
+    expect(zaak.fields.summary).toMatch(/Zaaksysteem/);
+    for (const issue of created) {
+      expect(issue.fields.labels).toEqual(['case-1042']);
+      expect(issue.fields.description).toMatchObject({ type: 'doc', version: 1 });
+      expect(JSON.stringify(issue.fields.description)).toContain('Sanne de Vries');
+    }
+    expect(sap.fields.status.name).toBe('Done');
+    expect(zaak.fields.status.name).toBe('To Do');
   }, 30_000);
 
   it('stops with a non-zero exit when a call fails', async () => {
