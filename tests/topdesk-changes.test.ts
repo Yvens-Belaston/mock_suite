@@ -171,4 +171,18 @@ describe('TOPdesk operator changes', () => {
       expect(res.status).toBe(404);
     });
   });
+
+  const SEEDED = 'e5b0c9a0-0000-4000-8000-000000000001';
+  it.each([
+    ['POST', '/tas/api/operatorChanges', LAPTOP],
+    ['GET', `/tas/api/operatorChanges/${SEEDED}`, undefined],
+    ['PATCH', `/tas/api/operatorChanges/${SEEDED}`, [{ op: 'add', path: '/progressTrail', value: 'x' }]],
+    ['POST', `/tas/api/operatorChanges/${SEEDED}/processingStatusTransitions`, { from: 'simple_notStarted', action: 'start' }],
+    ['POST', `/tas/api/operatorChanges/${SEEDED}/progresstrail`, { memoText: 'x', type: 'memo' }],
+  ] as const)('%s %s answers 401 without Basic auth and changes nothing', async (method, url, body) => {
+    const call = request(app.server)[method.toLowerCase() as 'get' | 'post' | 'patch'](url);
+    const res = body === undefined ? await call : await call.send(body as object);
+    expect(res.status).toBe(401);
+    expect(app.store.events).toEqual([]);
+  });
 });

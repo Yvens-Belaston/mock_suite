@@ -58,24 +58,40 @@ export function toApiIncident(incident: Incident): Record<string, unknown> {
   return { ...rest, action: `/tas/api/incidents/id/${incident.id}/actions` };
 }
 
+const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+/**
+ * The incident caller (spec 4.2). `caller` is taken as given (it may be an unregistered caller); a known
+ * `caller.id` is filled in from the seed. Only `callerLookup` is strict: exactly one of `id` / `email`,
+ * and it must match a person.
+ */
 function resolveCaller(store: Store, body: Record<string, unknown>): Incident['caller'] | string {
-  const form = body.caller !== undefined ? body.caller : body.callerLookup;
-  const which = body.caller !== undefined ? 'caller' : 'callerLookup';
   if (body.caller !== undefined && body.callerLookup !== undefined) return "Use either 'caller' or 'callerLookup', not both";
-  if (form === null || typeof form !== 'object' || Array.isArray(form)) {
-    return "The field 'caller' or 'callerLookup' is required";
-  }
-  const { id, email } = form as { id?: unknown; email?: unknown };
-  if ((id === undefined) === (email === undefined)) return `The field '${which}' needs exactly one of 'id' or 'email'`;
   const persons = store.get().topdesk.persons as Person[];
+  const asCaller = (p: Person): Incident['caller'] => ({ id: p.id, dynamicName: p.dynamicName, email: p.email });
+
+  if (body.caller !== undefined) {
+    if (!isObject(body.caller)) return "The field 'caller' must be an object";
+    const given: Incident['caller'] = {};
+    for (const key of ['id', 'dynamicName', 'email'] as const) {
+      if (typeof body.caller[key] === 'string') given[key] = body.caller[key] as string;
+    }
+    const known = given.id !== undefined ? persons.find((p) => p.id === given.id) : undefined;
+    return known ? asCaller(known) : given;
+  }
+
+  const lookup = body.callerLookup;
+  if (!isObject(lookup)) return "The field 'caller' or 'callerLookup' is required";
+  const { id, email } = lookup;
+  if ((id === undefined) === (email === undefined)) return "The field 'callerLookup' needs exactly one of 'id' or 'email'";
   const person =
     typeof id === 'string'
       ? persons.find((p) => p.id === id)
       : typeof email === 'string'
         ? persons.find((p) => p.email?.toLowerCase() === email.toLowerCase())
         : undefined;
-  if (!person) return `No person found for ${which} ${typeof id === 'string' ? `id '${id}'` : `email '${String(email)}'`}`;
-  return { id: person.id, dynamicName: person.dynamicName, email: person.email };
+  if (!person) return `No person found for callerLookup ${typeof id === 'string' ? `id '${id}'` : `email '${String(email)}'`}`;
+  return asCaller(person);
 }
 
 /**
