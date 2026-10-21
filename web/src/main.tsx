@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { SCREENS, Shell, type ScreenKey } from './components/Shell';
+import { Teams } from './screens/Teams';
 import './index.css';
 
 // Placeholder screens; tickets 08+ replace these with web/src/screens/*.tsx (each renders <Shell screen=...>).
@@ -18,7 +19,7 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter basename="/ui">
       <Routes>
         {(Object.keys(SCREENS) as ScreenKey[]).map((key) => (
-          <Route key={key} path={`/${key}`} element={<Placeholder screen={key} />} />
+          <Route key={key} path={`/${key}`} element={key === 'teams' ? <Teams /> : <Placeholder screen={key} />} />
         ))}
         <Route path="*" element={<Navigate to="/overview" replace />} />
       </Routes>
