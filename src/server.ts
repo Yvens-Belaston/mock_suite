@@ -3,6 +3,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 import { adminRoutes } from './routes/admin.js';
 import { eventsRoutes } from './routes/events.js';
+import { topdeskRoutes } from './routes/topdesk.js';
 import { createStore, type Store } from './store.js';
 
 declare module 'fastify' {
@@ -72,6 +73,7 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
   app.get('/health', async () => ({ status: 'ok' }));
   app.register(adminRoutes(store));
   app.register(eventsRoutes(store, options.heartbeatMs));
+  app.register(topdeskRoutes(store), { prefix: '/tas/api' });
 
   return app;
 }
