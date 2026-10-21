@@ -79,12 +79,12 @@ describe('Jira comments and transitions (/rest/api/3)', () => {
     expect(res.body.errorMessages).toEqual(expect.any(Array));
   });
 
-  it('transitionIssue(store, key, id) moves the issue by target status and reports unknown ids', () => {
-    const done = transitionIssue(app.store, 'IAM-104', '31');
+  it('transitionIssue(store, key, id) moves the issue by target status and reports unknown ids', async () => {
+    const done = await transitionIssue(app.store, 'IAM-104', '31');
     expect(done.ok && done.transition.to.name).toBe('Done');
     expect(done.ok && done.issue.fields.status.name).toBe('Done');
-    expect(transitionIssue(app.store, 'IAM-104', '99')).toEqual({ ok: false, reason: 'unknown_transition' });
-    expect(transitionIssue(app.store, 'IAM-999', '31')).toEqual({ ok: false, reason: 'issue_not_found' });
+    expect(await transitionIssue(app.store, 'IAM-104', '99')).toEqual({ ok: false, reason: 'unknown_transition' });
+    expect(await transitionIssue(app.store, 'IAM-999', '31')).toEqual({ ok: false, reason: 'issue_not_found' });
   });
 
   it('POST /issue/{key}/comment with an ADF body answers 201 with the comment', async () => {
