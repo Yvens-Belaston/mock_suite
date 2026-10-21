@@ -1,0 +1,9 @@
+{
+  "channels": [
+    { "id": "hr-onboarding", "name": "HR Onboarding", "createdAt": "2026-09-01T08:00:00.000Z", "updatedAt": "2026-09-01T08:00:00.000Z" },
+    { "id": "servicedesk", "name": "Servicedesk", "createdAt": "2026-09-01T08:00:00.000Z", "updatedAt": "2026-09-01T08:00:00.000Z" },
+    { "id": "facilities", "name": "Facilities", "createdAt": "2026-09-01T08:00:00.000Z", "updatedAt": "2026-09-01T08:00:00.000Z" },
+    { "id": "automation-coe", "name": "Automation CoE", "createdAt": "2026-09-01T08:00:00.000Z", "updatedAt": "2026-09-01T08:00:00.000Z" },
+    { "id": "algemeen", "name": "Algemeen", "createdAt": "2026-09-01T08:00:00.000Z", "updatedAt": "2026-09-01T08:00:00.000Z" }
+  ]
+}

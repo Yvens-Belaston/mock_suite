@@ -1,8 +1,23 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { pathToFileURL } from 'node:url';
+import { adminRoutes } from './routes/admin.js';
+import { createStore, type Store } from './store.js';
 
-export function buildServer(): FastifyInstance {
+declare module 'fastify' {
+  interface FastifyInstance {
+    store: Store;
+  }
+}
+
+export interface ServerOptions {
+  /** Defaults to a fresh store loaded from `seed/`. */
+  store?: Store;
+}
+
+export function buildServer(options: ServerOptions = {}): FastifyInstance {
   const app = Fastify({ logger: false });
+  const store = options.store ?? createStore();
+  app.decorate('store', store);
 
   app.addHook('onResponse', async (req, reply) => {
     const path = req.url.split('?')[0];
@@ -11,6 +26,7 @@ export function buildServer(): FastifyInstance {
   });
 
   app.get('/health', async () => ({ status: 'ok' }));
+  app.register(adminRoutes(store));
 
   return app;
 }
