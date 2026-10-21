@@ -193,7 +193,36 @@ api POST "/rest/api/3/issue/$SAP_ISSUE_KEY/transitions" \
 pause
 # ================================================================ END jira
 
-# (tickets 34-36: BEGIN/END topdesk, jira and teams sections go here, in that order)
+# ================================================================ BEGIN teams (ticket 36)
+# Escalation card, identical to spec section 4.5.
+ESCALATION_CARD=$(cat <<'JSON'
+{
+  "type": "message",
+  "attachments": [{
+    "contentType": "application/vnd.microsoft.card.adaptive",
+    "contentUrl": null,
+    "content": {
+      "type": "AdaptiveCard", "version": "1.5",
+      "body": [{ "type": "Container", "style": "attention", "items": [
+          { "type": "TextBlock", "text": "⚠️ Taak verlopen: werkplek inrichten", "weight": "Bolder", "size": "Medium" },
+          { "type": "FactSet", "facts": [
+            { "title": "Medewerker", "value": "Sanne de Vries" },
+            { "title": "Startdatum", "value": "01-12-2026" },
+            { "title": "Verantwoordelijk", "value": "Lotte Jansen (Facilities)" },
+            { "title": "Escalatie naar", "value": "Ruben de Boer" }
+          ]}
+      ]}],
+      "actions": [{ "type": "Action.OpenUrl", "title": "Open in Ofelia", "url": "http://localhost:8080/bonita/apps/userAppBonita/task-list" }]
+    }
+  }]
+}
+JSON
+)
+
+step "Teams: escalation to #Facilities (werkplek inrichten overdue)"
+api POST /teams/hook/facilities "$ESCALATION_CARD"
+pause
+# ================================================================ END teams
 
 # ================================================================ BEGIN offboarding
 printf '\n######## offboarding ########\n'
