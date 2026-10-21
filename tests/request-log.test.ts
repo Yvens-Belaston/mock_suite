@@ -8,7 +8,7 @@ let app: FastifyInstance | undefined;
 /** A server with stand-in mock API routes, as a route file would add them. */
 async function start(options: ServerOptions = {}): Promise<FastifyInstance> {
   app = buildServer({ responseDelayMs: 0, ...options });
-  app.post('/v1.0/users', async (_req, reply) => reply.code(201).send({ id: 'u-1' }));
+  app.post('/v1.0/standIn', async (_req, reply) => reply.code(201).send({ id: 'u-1' }));
   // The token route is the real one from `graphRoutes`, an encapsulated plugin: the hooks must reach into it.
   await app.ready();
   return app;
@@ -22,14 +22,14 @@ afterEach(async () => {
 describe('request log', () => {
   it('lists a mock API request in /admin/requests with method, path, body, status, ms and at', async () => {
     const server = await start();
-    await request(server.server).post('/v1.0/users?x=1').send({ displayName: 'Sanne de Vries' });
+    await request(server.server).post('/v1.0/standIn?x=1').send({ displayName: 'Sanne de Vries' });
 
     const res = await request(server.server).get('/admin/requests');
     expect(res.status).toBe(200);
     expect(res.body).toEqual([
       {
         method: 'POST',
-        path: '/v1.0/users',
+        path: '/v1.0/standIn',
         body: { displayName: 'Sanne de Vries' },
         status: 201,
         ms: expect.any(Number),
@@ -40,7 +40,7 @@ describe('request log', () => {
 
   it('does not log the same request sent with X-Mock-Source: ui', async () => {
     const server = await start();
-    await request(server.server).post('/v1.0/users').set('X-Mock-Source', 'ui').send({ displayName: 'UI' });
+    await request(server.server).post('/v1.0/standIn').set('X-Mock-Source', 'ui').send({ displayName: 'UI' });
 
     const res = await request(server.server).get('/admin/requests');
     expect(res.body).toEqual([]);
@@ -73,10 +73,10 @@ describe('request log', () => {
 
   it('exposes the log as `requests` in /admin/state and clears it on reset', async () => {
     const server = await start();
-    await request(server.server).post('/v1.0/users').send({ displayName: 'Sanne de Vries' });
+    await request(server.server).post('/v1.0/standIn').send({ displayName: 'Sanne de Vries' });
 
     const before = await request(server.server).get('/admin/state');
-    expect(before.body.requests.map((r: { path: string }) => r.path)).toEqual(['/v1.0/users']);
+    expect(before.body.requests.map((r: { path: string }) => r.path)).toEqual(['/v1.0/standIn']);
 
     await request(server.server).post('/admin/reset');
     const after = await request(server.server).get('/admin/state');
@@ -89,11 +89,11 @@ describe('request log', () => {
     const seen: unknown[] = [];
     server.store.emitter.on('change', (e) => seen.push(e));
 
-    await request(server.server).post('/v1.0/users').send({});
-    await request(server.server).post('/v1.0/users').set('X-Mock-Source', 'ui').send({});
+    await request(server.server).post('/v1.0/standIn').send({});
+    await request(server.server).post('/v1.0/standIn').set('X-Mock-Source', 'ui').send({});
 
     expect(seen).toEqual([
-      expect.objectContaining({ system: 'admin', entity: 'request', action: 'created', summary: expect.stringContaining('POST /v1.0/users 201') }),
+      expect.objectContaining({ system: 'admin', entity: 'request', action: 'created', summary: expect.stringContaining('POST /v1.0/standIn 201') }),
     ]);
   });
 });
@@ -101,24 +101,24 @@ describe('request log', () => {
 describe('fail rate', () => {
   it('answers a mock API call with an empty 503 when the draw falls under FAIL_RATE, and logs it', async () => {
     const server = await start({ failRate: 0.5, random: () => 0.1 });
-    const res = await request(server.server).post('/v1.0/users').send({});
+    const res = await request(server.server).post('/v1.0/standIn').send({});
     expect(res.status).toBe(503);
     expect(res.text).toBe('');
 
     const log = await request(server.server).get('/admin/requests');
-    expect(log.body[0]).toMatchObject({ path: '/v1.0/users', status: 503 });
+    expect(log.body[0]).toMatchObject({ path: '/v1.0/standIn', status: 503 });
   });
 
   it('lets the call through when the draw is at or above FAIL_RATE', async () => {
     const server = await start({ failRate: 0.5, random: () => 0.5 });
-    expect((await request(server.server).post('/v1.0/users').send({})).status).toBe(201);
+    expect((await request(server.server).post('/v1.0/standIn').send({})).status).toBe(201);
   });
 
   it('never fails /admin, /health or X-Mock-Source: ui calls', async () => {
     const server = await start({ failRate: 1 });
     expect((await request(server.server).get('/health')).status).toBe(200);
     expect((await request(server.server).get('/admin/requests')).status).toBe(200);
-    expect((await request(server.server).post('/v1.0/users').set('X-Mock-Source', 'ui').send({})).status).toBe(201);
+    expect((await request(server.server).post('/v1.0/standIn').set('X-Mock-Source', 'ui').send({})).status).toBe(201);
   });
 });
 
@@ -127,13 +127,13 @@ describe('response delay', () => {
     const server = await start({ responseDelayMs: 120 });
 
     let t = performance.now();
-    await request(server.server).post('/v1.0/users').send({});
+    await request(server.server).post('/v1.0/standIn').send({});
     expect(performance.now() - t).toBeGreaterThanOrEqual(110);
     const [entry] = (await request(server.server).get('/admin/requests')).body;
     expect(entry.ms).toBeGreaterThanOrEqual(110);
 
     t = performance.now();
-    await request(server.server).post('/v1.0/users').set('X-Mock-Source', 'ui').send({});
+    await request(server.server).post('/v1.0/standIn').set('X-Mock-Source', 'ui').send({});
     await request(server.server).get('/health');
     expect(performance.now() - t).toBeLessThan(100);
   });
@@ -144,9 +144,9 @@ describe('response delay', () => {
     process.env.FAIL_RATE = '1';
     try {
       app = buildServer();
-      app.post('/v1.0/users', async () => ({}));
+      app.post('/v1.0/standIn', async () => ({}));
       await app.ready();
-      expect((await request(app.server).post('/v1.0/users').send({})).status).toBe(503);
+      expect((await request(app.server).post('/v1.0/standIn').send({})).status).toBe(503);
     } finally {
       process.env.RESPONSE_DELAY_MS = saved.delay;
       process.env.FAIL_RATE = saved.fail;
