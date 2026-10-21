@@ -19,3 +19,21 @@ h1,
 h2 {
   font-size: 20px;
 }
+
+/* New or changed items (useLiveState().changed): yellow background fading over 2 s, sliding in. */
+@keyframes flash {
+  from {
+    background-color: #fef08a;
+    transform: translateY(-4px);
+  }
+  20% {
+    transform: none;
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+.flash {
+  animation: flash 2s ease-out;
+}

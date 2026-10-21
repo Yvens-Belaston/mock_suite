@@ -1,7 +1,8 @@
 import Fastify, { type FastifyInstance } from 'fastify';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { adminRoutes } from './routes/admin.js';
 import { eventsRoutes } from './routes/events.js';
+import { uiRoutes } from './routes/ui.js';
 import { createStore, type Store } from './store.js';
 
 declare module 'fastify' {
@@ -15,7 +16,12 @@ export interface ServerOptions {
   store?: Store;
   /** SSE heartbeat interval for `/events`; defaults to 15 s (spec section 7). */
   heartbeatMs?: number;
+  /** Built screens (`npm run build:web`) served at `/ui/`; defaults to `<repo>/web/dist`. */
+  webDist?: string;
 }
+
+/** Resolves to `<repo>/web/dist` from both `src/` (tsx/vitest) and `dist/` (node). */
+export const DEFAULT_WEB_DIST = fileURLToPath(new URL('../web/dist/', import.meta.url));
 
 export function buildServer(options: ServerOptions = {}): FastifyInstance {
   const app = Fastify({ logger: false });
@@ -31,6 +37,7 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
   app.get('/health', async () => ({ status: 'ok' }));
   app.register(adminRoutes(store));
   app.register(eventsRoutes(store, options.heartbeatMs));
+  app.register(uiRoutes(options.webDist ?? DEFAULT_WEB_DIST));
 
   return app;
 }
