@@ -108,6 +108,33 @@ export function useLiveState<T extends SystemState = SystemState>(system: string
   };
 }
 
+/** `GET /admin/state`.config.bonitaEnabled; undefined until loaded. Read once per page (env can't change at runtime). */
+function useBonitaEnabled(): boolean | undefined {
+  const [enabled, setEnabled] = useState<boolean>();
+  useEffect(() => {
+    let live = true;
+    fetch('/admin/state', { headers: { 'X-Mock-Source': 'ui' } })
+      .then((r) => (r.ok ? r.json() : undefined))
+      .then((body: { config?: { bonitaEnabled?: boolean } } | undefined) => {
+        if (live && typeof body?.config?.bonitaEnabled === 'boolean') setEnabled(body.config.bonitaEnabled);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+  return enabled;
+}
+
+/** Spec 5 disabled mode: `BONITA_ENABLED=false` shows this in every header. */
+function OfeliaOffline() {
+  return (
+    <span className="inline-flex items-center rounded-full border border-gray-300 bg-gray-100 px-2.5 py-0.5 text-sm font-medium text-gray-600">
+      Ofelia niet verbonden
+    </span>
+  );
+}
+
 function LiveDot() {
   const connection = useSyncExternalStore(subscribeConnection, getConnection);
   const connected = connection === 'connected';
@@ -158,6 +185,7 @@ export function Shell({ screen, children }: { screen: ScreenKey; children?: Reac
   const { title, subtitle, accent, icon: Icon, system } = SCREENS[screen];
   const [params] = useSearchParams();
   const compact = params.get('compact') === '1';
+  const bonitaEnabled = useBonitaEnabled();
 
   useChangeEvents((e) => {
     if (isReset(e) || (system !== null && e.system === system)) {
@@ -175,6 +203,7 @@ export function Shell({ screen, children }: { screen: ScreenKey; children?: Reac
         <h1 className="font-semibold">{title}</h1>
         {!compact && <span className="text-gray-500">· {subtitle}</span>}
         <SimulatedBadge />
+        {bonitaEnabled === false && <OfeliaOffline />}
         <LiveDot />
       </header>
       <main>{children}</main>
