@@ -39,10 +39,24 @@ test('the live dot stays grey while /events is unreachable', async ({ page }) =>
   await expect(page.getByTestId('live-dot')).toHaveAttribute('data-state', 'disconnected');
 });
 
-test('a reset shows its summary as a toast', async ({ page, request }) => {
+test('a reset shows its summary as a toast', async ({ page }) => {
+  // No real POST /admin/reset: it would wipe data that specs running in parallel just created.
+  // Serve the reset's change event from a stubbed /events instead (the server side is unit-tested).
+  const resetEvent = {
+    system: 'admin',
+    entity: 'state',
+    action: 'reset',
+    id: '',
+    summary: 'Demo teruggezet naar de beginsituatie',
+    at: new Date().toISOString(),
+  };
+  await page.route('**/events', (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' },
+      body: `retry: 600000\n\nevent: change\ndata: ${JSON.stringify(resetEvent)}\n\n`,
+    }),
+  );
   await page.goto('/ui/teams');
-  await expect(page.getByTestId('live-dot')).toHaveAttribute('data-state', 'connected');
-  const res = await request.post('/admin/reset');
-  expect(res.status()).toBe(204);
   await expect(page.getByRole('status').getByText('Demo teruggezet naar de beginsituatie')).toBeVisible();
 });
