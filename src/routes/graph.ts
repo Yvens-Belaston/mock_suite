@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type { Store } from '../store.js';
 
@@ -74,6 +74,9 @@ export function graphRoutes(store: Store) {
       if (!user) return reply.code(404).send(graphError('Request_ResourceNotFound', notFoundMessage(req.params.x)));
       return { '@odata.context': `${ODATA}#users/$entity`, ...project(user, req.query.$select) };
     });
+
+    // Ticket 09: user writes (POST/PATCH user, manager $ref, assignLicense, revokeSignInSessions).
+    userWriteRoutes(app, store);
 
     groupRoutes(app, store);
   };
@@ -264,4 +267,166 @@ export function project(user: GraphUser, select?: string): Record<string, unknow
     : [...DEFAULT_USER_FIELDS];
   const record = user as unknown as Record<string, unknown>;
   return Object.fromEntries(fields.filter((f) => f in record).map((f) => [f, record[f]]));
+}
+
+// ---------------------------------------------------------------------------
+// Ticket 09: user writes (spec 4.3). Registered inside `graphRoutes`, so the bearer guard applies.
+// ---------------------------------------------------------------------------
+
+type Body = Record<string, unknown>;
+
+const REQUIRED_CREATE_FIELDS = ['accountEnabled', 'displayName', 'mailNickname', 'userPrincipalName'] as const;
+
+/** Fields a client may set on create or PATCH (everything else in the body is ignored). */
+const WRITABLE_USER_FIELDS = [
+  'accountEnabled',
+  'displayName',
+  'givenName',
+  'surname',
+  'mailNickname',
+  'userPrincipalName',
+  'mail',
+  'jobTitle',
+  'department',
+  'officeLocation',
+  'businessPhones',
+  'mobilePhone',
+  'preferredLanguage',
+  'employeeHireDate',
+  'usageLocation',
+] as const;
+
+function asBody(body: unknown): Body {
+  return body && typeof body === 'object' && !Array.isArray(body) ? (body as Body) : {};
+}
+
+function badRequest(message: string) {
+  return graphError('Request_BadRequest', message);
+}
+
+function writableFields(body: Body): Partial<GraphUser> {
+  return Object.fromEntries(WRITABLE_USER_FIELDS.filter((f) => f in body).map((f) => [f, body[f]])) as Partial<GraphUser>;
+}
+
+function upnTaken(store: Store, upn: string, exceptId?: string): boolean {
+  const key = upn.toLowerCase();
+  return users(store).some((u) => u.id !== exceptId && u.userPrincipalName.toLowerCase() === key);
+}
+
+const DUPLICATE_UPN = 'Another object with the same value for property userPrincipalName already exists.';
+
+function userWriteRoutes(app: FastifyInstance, store: Store): void {
+  app.post('/v1.0/users', async (req, reply) => {
+    const body = asBody(req.body);
+    const missing = REQUIRED_CREATE_FIELDS.find((f) => body[f] === undefined || body[f] === null || body[f] === '');
+    if (missing) return reply.code(400).send(badRequest(`Property '${missing}' is required.`));
+    const password = asBody(body.passwordProfile).password;
+    if (typeof password !== 'string' || !password) {
+      return reply.code(400).send(badRequest("Property 'passwordProfile.password' is required."));
+    }
+    const upn = String(body.userPrincipalName);
+    if (upnTaken(store, upn)) return reply.code(400).send(badRequest(DUPLICATE_UPN));
+    const now = new Date().toISOString();
+    const user = {
+      id: randomUUID(),
+      givenName: null,
+      surname: null,
+      mail: upn,
+      jobTitle: null,
+      department: null,
+      officeLocation: null,
+      businessPhones: [],
+      mobilePhone: null,
+      preferredLanguage: null,
+      employeeHireDate: null,
+      usageLocation: null,
+      ...writableFields(body),
+      managerId: null,
+      assignedLicenses: [],
+      signInSessionsRevokedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    } as GraphUser;
+    store.update('graph', (g) => {
+      (g.users as GraphUser[]).push(user);
+      return { entity: 'user', action: 'created', id: user.id, summary: `${user.displayName} aangemaakt` };
+    });
+    return reply.code(201).send({ '@odata.context': `${ODATA}#users/$entity`, ...project(user) });
+  });
+
+  app.patch<{ Params: { x: string } }>('/v1.0/users/:x', async (req, reply) => {
+    const user = findUser(store, req.params.x);
+    if (!user) return reply.code(404).send(notFound(req.params.x));
+    const changes = writableFields(asBody(req.body));
+    if (Object.keys(changes).length === 0) {
+      return reply.code(400).send(badRequest('The request body contains no updatable user properties.'));
+    }
+    if (changes.userPrincipalName !== undefined && upnTaken(store, String(changes.userPrincipalName), user.id)) {
+      return reply.code(400).send(badRequest(DUPLICATE_UPN));
+    }
+    updateUser(store, user, changes, `${user.displayName} bijgewerkt`);
+    return reply.code(204).send();
+  });
+
+  // Documented with `{id}` only: the UPN is not accepted here (spec 4.3).
+  app.put<{ Params: { id: string } }>('/v1.0/users/:id/manager/$ref', async (req, reply) => {
+    const user = users(store).find((u) => u.id === req.params.id);
+    if (!user) return reply.code(404).send(notFound(req.params.id));
+    const ref = asBody(req.body)['@odata.id'];
+    if (typeof ref !== 'string' || !ref) return reply.code(400).send(badRequest("Property '@odata.id' is required."));
+    const managerId = ref.split('/').pop() ?? '';
+    const manager = users(store).find((u) => u.id === managerId);
+    if (!manager) return reply.code(404).send(notFound(managerId));
+    updateUser(store, user, { managerId: manager.id }, `${manager.displayName} is manager van ${user.displayName}`);
+    return reply.code(204).send();
+  });
+
+  app.post<{ Params: { x: string } }>('/v1.0/users/:x/assignLicense', async (req, reply) => {
+    const user = findUser(store, req.params.x);
+    if (!user) return reply.code(404).send(notFound(req.params.x));
+    const body = asBody(req.body);
+    for (const field of ['addLicenses', 'removeLicenses']) {
+      if (!Array.isArray(body[field])) return reply.code(400).send(badRequest(`Property '${field}' is required.`));
+    }
+    const add = (body.addLicenses as unknown[]).map((l) => String(asBody(l).skuId ?? ''));
+    const remove = (body.removeLicenses as unknown[]).map(String);
+    if (add.length > 0 && !user.usageLocation) {
+      return reply
+        .code(400)
+        .send(badRequest(`License assignment cannot be done for user ${user.id} with invalid usage location.`));
+    }
+    const skus = store.get().graph.skus as { skuId: string; skuPartNumber: string }[];
+    const unknown = [...add, ...remove].find((id) => !skus.some((s) => s.skuId === id));
+    if (unknown !== undefined) {
+      return reply.code(400).send(badRequest(`License ${unknown} does not correspond to a valid company License.`));
+    }
+    const kept = user.assignedLicenses.filter((l) => !remove.includes(l.skuId) && !add.includes(l.skuId));
+    const names = (ids: string[]) => ids.map((id) => skus.find((s) => s.skuId === id)?.skuPartNumber).join(', ');
+    const summary = add.length
+      ? `Licentie ${names(add)} toegekend aan ${user.displayName}`
+      : remove.length
+        ? `Licentie ${names(remove)} ingetrokken bij ${user.displayName}`
+        : `Licenties van ${user.displayName} bijgewerkt`;
+    updateUser(store, user, { assignedLicenses: [...kept, ...add.map((skuId) => ({ skuId }))] }, summary);
+    return { '@odata.context': `${ODATA}#users/$entity`, ...project(user) };
+  });
+
+  app.post<{ Params: { x: string } }>('/v1.0/users/:x/revokeSignInSessions', async (req, reply) => {
+    const user = findUser(store, req.params.x);
+    if (!user) return reply.code(404).send(notFound(req.params.x));
+    updateUser(store, user, { signInSessionsRevokedAt: new Date().toISOString() }, `Sessies van ${user.displayName} ingetrokken`);
+    return { '@odata.context': `${ODATA}#Edm.Boolean`, value: true };
+  });
+}
+
+function notFound(x: string) {
+  return graphError('Request_ResourceNotFound', notFoundMessage(x));
+}
+
+/** Mutate the stored user through `store.update` (emits a `graph/user/updated` change). */
+function updateUser(store: Store, user: GraphUser, changes: Partial<GraphUser>, summary: string): void {
+  store.update('graph', () => {
+    Object.assign(user, changes, { updatedAt: new Date().toISOString() });
+    return { entity: 'user', action: 'updated', id: user.id, summary };
+  });
 }
