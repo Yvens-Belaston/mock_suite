@@ -5,6 +5,7 @@ import { SCREENS, Shell, type ScreenKey } from './components/Shell';
 import { Jira } from './screens/Jira';
 import { Overview } from './screens/Overview';
 import { Teams } from './screens/Teams';
+import { Topdesk } from './screens/Topdesk';
 import './index.css';
 
 // Placeholder screens; tickets 08+ replace these with web/src/screens/*.tsx (each renders <Shell screen=...>).
@@ -20,6 +21,7 @@ const SCREEN_COMPONENTS: Partial<Record<ScreenKey, JSX.Element>> = {
   overview: <Overview />,
   jira: <Jira />,
   teams: <Teams />,
+  topdesk: <Topdesk />,
 };
 
 createRoot(document.getElementById('root')!).render(
