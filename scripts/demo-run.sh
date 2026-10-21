@@ -96,6 +96,53 @@ api POST "/v1.0/users/$SANNE_ID/assignLicense" \
 pause
 # ================================================================ END entra
 
+# ================================================================ BEGIN topdesk (ticket 34)
+TOPDESK_AUTH=(-u "ofelia:demo-secret")
+
+step "TOPdesk: look up Sanne de Vries (by email)"
+SANNE_PERSONS=$(api GET /tas/api/persons '' -G --data-urlencode "query=email==$GRAPH_USER_UPN" "${TOPDESK_AUTH[@]}")
+pause
+if [[ -z "$SANNE_PERSONS" ]]; then
+  # 204 (no body): she is not in TOPdesk yet, so create her person record first.
+  step "TOPdesk: create person Sanne de Vries"
+  TOPDESK_SANNE_ID=$(api POST /tas/api/persons "{
+  \"firstName\": \"Sanne\",
+  \"surName\": \"de Vries\",
+  \"email\": \"$GRAPH_USER_UPN\",
+  \"networkLoginName\": \"$GRAPH_USER_UPN\",
+  \"jobTitle\": \"Business Analist\",
+  \"department\": { \"name\": \"Digitalisering\" },
+  \"branch\": { \"name\": \"Stadhuis Amstel\" }
+}" "${TOPDESK_AUTH[@]}" | json_get id)
+  pause
+else
+  TOPDESK_SANNE_ID=$(printf '%s' "$SANNE_PERSONS" | json_get 0.id)
+fi
+echo "TOPdesk person Sanne de Vries: $TOPDESK_SANNE_ID"
+
+step "TOPdesk: create laptop change"
+LAPTOP_CHANGE_ID=$(api POST /tas/api/operatorChanges "{
+  \"requester\": { \"id\": \"$TOPDESK_SANNE_ID\" },
+  \"briefDescription\": \"Laptop uitleveren - Sanne de Vries\",
+  \"request\": \"Standaard laptop klaarzetten voor indiensttreding op 2026-12-01.\",
+  \"changeType\": \"simple\",
+  \"category\": { \"name\": \"Werkplek\" },
+  \"subcategory\": { \"name\": \"Laptop\" }
+}" "${TOPDESK_AUTH[@]}" | json_get id)
+echo "Laptop change: $LAPTOP_CHANGE_ID"
+pause
+
+step "TOPdesk: laptop change -> In behandeling (start)"
+api POST "/tas/api/operatorChanges/$LAPTOP_CHANGE_ID/processingStatusTransitions" \
+  '{"from": "simple_notStarted", "action": "start"}' "${TOPDESK_AUTH[@]}" >/dev/null
+pause
+
+step "TOPdesk: laptop change -> Afgerond (implement)"
+api POST "/tas/api/operatorChanges/$LAPTOP_CHANGE_ID/processingStatusTransitions" \
+  '{"from": "simple_inProgress", "action": "implement"}' "${TOPDESK_AUTH[@]}" >/dev/null
+pause
+# ================================================================ END topdesk
+
 # (tickets 34-36: BEGIN/END topdesk, jira and teams sections go here, in that order)
 
 # ================================================================ BEGIN offboarding
@@ -115,7 +162,11 @@ api DELETE "/v1.0/groups/$GROUP_VPN/members/$SANNE_ID/\$ref" '' "${GRAPH_AUTH[@]
 pause
 # ---------------------------------------------------------------- end offboarding: entra
 
-# (ticket 34: `offboarding: topdesk` block (PATCH person archive) goes here)
+# ---------------------------------------------------------------- offboarding: topdesk (ticket 34)
+step "TOPdesk: archive person Sanne de Vries"
+api PATCH "/tas/api/persons/id/$TOPDESK_SANNE_ID/archive" '' "${TOPDESK_AUTH[@]}" >/dev/null
+pause
+# ---------------------------------------------------------------- end offboarding: topdesk
 # ================================================================ END offboarding
 
 printf '\nDemo run complete.\n'
