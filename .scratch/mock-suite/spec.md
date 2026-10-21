@@ -62,7 +62,7 @@ All IDs are UUID v4 unless stated. Every record stores `createdAt` and `updatedA
 | Collection | Key fields | Mirrors |
 | --- | --- | --- |
 | `topdesk.incidents` | `id`, `number` (format `I 2610 001`, incrementing; prefix `2610` is fixed, not derived from the current date), `briefDescription`, `request`, `caller {id, dynamicName, email}`, `category {name}`, `subcategory {name}`, `operatorGroup {name}`, `processingStatus {name}`, `closed`, `externalNumber`, `actions[] {date, text, author}` | TOPdesk incident |
-| `topdesk.changes` | `id`, `number` (format `C2610-001`), `briefDescription`, `request`, `changeType` (`simple`), `requester {id, name}`, `processingStatus` (`simple_notStarted`, `simple_inProgress`, `simple_done`, `simple_closed`), `externalNumber`, `progressTrail[] {date, text}` (internal; not returned as text by the API) | TOPdesk operatorChange |
+| `topdesk.changes` | `id`, `number` (format `C 2610 001`, TOPdesk style: `C`, space, 4 digits, space, digits), `briefDescription`, `request`, `changeType` (`simple`), `requester {id, name}`, `processingStatus` (`simple_notStarted`, `simple_inProgress`, `simple_done`, `simple_closed`), `externalNumber`, `progressTrail[] {date, text}` (internal; not returned as text by the API) | TOPdesk operatorChange |
 | `topdesk.persons` | `id`, `firstName`, `surName`, `dynamicName`, `email`, `networkLoginName`, `department {name}`, `branch {name}`, `archived` | TOPdesk person |
 | `graph.users` | `id`, `displayName`, `givenName`, `surname`, `mailNickname`, `userPrincipalName`, `jobTitle`, `department`, `employeeHireDate`, `usageLocation`, `accountEnabled`, `managerId`, `assignedLicenses[] {skuId}`, `signInSessionsRevokedAt` | Graph user |
 | `graph.groups` | `id`, `displayName`, `memberIds[]` | Graph group |
@@ -80,39 +80,40 @@ All IDs are UUID v4 unless stated. Every record stores `createdAt` and `updatedA
 - Graph groups: `GG-Digitalisering`, `GG-Sociaal-Domein`, `GG-Facilities`, `GG-Alle-Medewerkers`, `GG-VPN-Gebruikers`.
 - TOPdesk persons: the same 10 people; operator groups `Servicedesk`, `Werkplekbeheer`, `Facilities`, `HR`.
 - TOPdesk categories: `Personeel` → `Indiensttreding`, `Uitdiensttreding`; `Werkplek` → `Laptop`, `Toegang`.
-- TOPdesk history: 6 closed incidents and 2 open ones (`I 2610 001`–`008`), plus 3 closed changes (`C2610-001`–`003`, `simple_closed`), so the lists never look empty.
+- TOPdesk history: 6 closed incidents and 2 open ones (`I 2610 001`–`008`), plus 3 closed changes (`C 2610 001`–`003`, `simple_closed`), so the lists never look empty.
 - Jira projects: `IAM` (Toegangsbeheer), `AUTO` (Automatisering backlog). Jira users: the app owners above plus Emma Mulder, plus the service account `svc-ofelia` ("Ofelia Integratie", `svc-ofelia@demo-amsterdam.onmicrosoft.com`) returned by `/myself`. 4 existing issues per project, in mixed statuses.
 - Teams channels: `hr-onboarding`, `servicedesk`, `facilities`, `automation-coe`, `algemeen`. 2 older messages each.
 - The new hire used in the script, **Sanne de Vries** (Business Analist, Digitalisering, start 01-12-2026), must NOT exist in the seed. She is created during the demo.
 
 ## 4. API contracts
 
-These paths, methods, field names and status codes copy the public APIs (verified against the vendors' published OpenAPI files, Oct 2026). Accept and ignore unknown fields. Be exactly as strict as the real API: reject what it rejects (e.g. a plain-string comment in Jira v3), never require more than it does. Validate only the required fields listed; on failure return `400` with a JSON body in the vendor's error style. Log every request (method, path, status, ms) to stdout.
+These paths, methods, field names and status codes copy the public APIs (verified against the vendors' published OpenAPI files, Oct 2026). Unknown fields: TOPdesk rejects unknown top-level fields with `400` (`field does not exist`), as the real API does; Graph and Jira accept and ignore them. Be exactly as strict as the real API: reject what it rejects (e.g. a plain-string comment in Jira v3), never require more than it does. Validate only the required fields listed; on failure return `400` with a JSON body in the vendor's error style. Log every request (method, path, status, ms) to stdout.
 
 ### 4.1 Authentication (accept, don't enforce)
 
 - TOPdesk: require an `Authorization: Basic …` header; any value is accepted. Missing header returns `401`.
-- Graph: `POST /{tenantId}/oauth2/v2.0/token` (form-encoded, `grant_type=client_credentials`) with `client_id`, `client_secret` and `scope` present (any value; `400` `invalid_request` if missing) returns `{"token_type":"Bearer","expires_in":3599,"access_token":"mock-<random>"}`. In production this endpoint lives on `login.microsoftonline.com`, a different host from Graph. Graph routes require `Authorization: Bearer …`; any value is accepted.
+- Graph: `POST /{tenantId}/oauth2/v2.0/token` (form-encoded, `grant_type=client_credentials`) with `client_id`, `client_secret` and `scope` present (any value; `400` `invalid_request` if missing; client credentials may also come in an `Authorization: Basic` header instead of `client_secret`) returns `{"token_type":"Bearer","expires_in":3599,"access_token":"mock-<random>"}`. In production this endpoint lives on `login.microsoftonline.com`, a different host from Graph. Token errors use Entra's flat shape `{"error":"invalid_request","error_description":"…"}`, not Graph's error object. Graph routes require `Authorization: Bearer …`; any value is accepted.
 - Jira: require `Authorization: Basic …`; any value is accepted.
-- Teams: no auth; the channel is in the URL.
+- Teams: no auth; the channel is in the URL. This matches a Workflows trigger set to "Anyone". Triggers limited to tenant users need `Authorization: Bearer …`, which the mock accepts and ignores.
 
 ### 4.2 TOPdesk (`/tas/api`)
 
 | Method | Path | Required body fields | Response |
 | --- | --- | --- | --- |
 | GET | `/tas/api/version` | none | `{"version":"3.x-mock"}` |
-| POST | `/tas/api/incidents` | `briefDescription`; `caller` or `callerLookup.email` | `201` + full incident; `number` generated |
+| POST | `/tas/api/incidents` | none required by the OpenAPI; the mock requires `briefDescription` (max 80 chars, else `400`) and one caller form (`caller`, or `callerLookup` with exactly one of `{id}` / `{email}`) as demo validation | `201` + full incident; `number` generated |
 | GET | `/tas/api/incidents/id/{id}` | none | incident or `404` |
 | GET | `/tas/api/incidents/number/{number}` | none | incident or `404` (number is URL-encoded, spaces allowed) |
 | PATCH | `/tas/api/incidents/id/{id}` and `/number/{number}` | any subset: `action` (string, appended to `actions[]`), `processingStatus.name`, `closed`, `externalNumber`, `operatorGroup.name` | `200` + updated incident |
-| GET | `/tas/api/incidents?query=…&pageSize=…&pageStart=…` | none | array, or `204` no body when nothing matches; support `closed==false` and `externalNumber==X` FIQL filters only |
-| POST | `/tas/api/operatorChanges` | `requester.id`; plus `briefDescription` and `changeType` when no `template` is given | `201` + change; `processingStatus` = `simple_notStarted` |
+| GET | `/tas/api/incidents?query=…&pageSize=…&pageStart=…` | none | `200` + array; `206` + same array and an `x-next-page-url` header when more results exist than `pageSize` (default 10); `204` no body when nothing matches; support `closed==false` and `externalNumber==X` FIQL filters only |
+| POST | `/tas/api/operatorChanges` | `requester` with one of `id`, `identifier` (UUID, email or name) or `name`; plus `briefDescription` and `changeType` when no `template` is given | `201` + change; `processingStatus` = `simple_notStarted` (demo simplification: real tenants create new changes in the `rfc` or `prfc` phase, so Bonita must not rely on the initial status) |
 | GET | `/tas/api/operatorChanges/{id}` | none | change or `404` |
-| PATCH | `/tas/api/operatorChanges/{id}` | JSON Patch list (`Content-Type: application/json-patch+json`); support only `{"op":"replace","path":"/processingStatus","value":…}` and `{"op":"add","path":"/progressTrail","value":"text"}`; other ops → `400` | `204` no body |
-| POST | `/tas/api/operatorChanges/{id}/progresstrail` | progress trail text | `201` |
-| GET | `/tas/api/persons?query=email=={email}` | none | array (legacy format, no `Accept` v2 header), or `204` no body when nothing matches |
-| POST | `/tas/api/persons` | `surName` | `201` + person |
-| PATCH | `/tas/api/persons/id/{id}/archive` | `{"id":"<archivingReasonId>"}` (any id; optional) | `200` + person with `archived: true` |
+| PATCH | `/tas/api/operatorChanges/{id}` | JSON Patch list (`Content-Type: application/json-patch+json`); support only `{"op":"add","path":"/progressTrail","value":"text"}`; any other op or path (including `/processingStatus`, which is not a documented updatable field) → `400` | `204` no body |
+| POST | `/tas/api/operatorChanges/{id}/processingStatusTransitions` | `{"from":"<current status>","action":…}`; `start` (`simple_notStarted` → `simple_inProgress`), `implement` (`simple_inProgress` → `simple_done`), `close` (`simple_done` → `simple_closed`); `from` not equal to the current status, or unknown action → `400` | `201` |
+| POST | `/tas/api/operatorChanges/{id}/progresstrail` | `{"memoText":"…","type":"memo"}` (both required; optional `textFormatting`: `plain`\|`html`); `{id}` is a UUID | `201` |
+| GET | `/tas/api/persons?query=email=={email}` | none | `200` + array (legacy format, no `Accept` v2 header); `206` + same array when more results exist than `pageSize` (default 50); `204` no body when nothing matches. Archived persons are included unless the query contains `;archived==false` |
+| POST | `/tas/api/persons` | `surName` (v2, `Accept: application/x.topdesk-person-v2+json`; legacy without that header also requires `branch`). The mock enforces v2: `surName` only | `201` + person |
+| PATCH | `/tas/api/persons/id/{id}/archive` | `{"id":"<archivingReasonId>"}` (required on real tenants unless a default archiving reason is set; the mock accepts it missing) | `200` + person with `archived: true`; already archived → `400` |
 
 `action` on incident POST/PATCH appends to the progress trail (stored internally as `actions[]` for the screen). In GET responses `action` is a link (`/tas/api/incidents/id/{id}/actions`), not an array; that GET route itself is not implemented.
 
@@ -120,19 +121,19 @@ These paths, methods, field names and status codes copy the public APIs (verifie
 
 | Method | Path | Required body fields | Response |
 | --- | --- | --- | --- |
-| GET | `/v1.0/users/{id or userPrincipalName}` | none | user (respect `$select`) or `404` with Graph error `Request_ResourceNotFound` |
+| GET | `/v1.0/users/{id or userPrincipalName}` | none | user. Without `$select`, return only Graph's default set (`businessPhones, displayName, givenName, id, jobTitle, mail, mobilePhone, officeLocation, preferredLanguage, surname, userPrincipalName`); fields such as `accountEnabled`, `department`, `employeeHireDate`, `usageLocation`, `assignedLicenses` only with `$select`. Unknown user → `404` with Graph error `Request_ResourceNotFound` (code seen in practice, not documented; clients must branch on HTTP status, not on `code`/`message`) |
 | GET | `/v1.0/users?$filter=userPrincipalName eq '…'` | none | `{"value":[…]}`; support `eq` on `userPrincipalName` and `mail` only |
-| POST | `/v1.0/users` | `accountEnabled`, `displayName`, `mailNickname`, `userPrincipalName`, `passwordProfile.password` | `201` + user (never echo the password); duplicate UPN returns `400` with code `Request_BadRequest` and message containing `already exists` |
+| POST | `/v1.0/users` | `accountEnabled`, `displayName`, `mailNickname`, `userPrincipalName`, `passwordProfile.password` | `201` + user (never echo the password); duplicate UPN returns `400` with code `Request_BadRequest` and message containing `already exists` (seen in practice, not documented; clients must branch on HTTP status) |
 | PATCH | `/v1.0/users/{id}` | any subset (e.g. `accountEnabled`) | `204` no body |
 | PUT | `/v1.0/users/{id}/manager/$ref` | `@odata.id` ending in a user id | `204` |
 | GET | `/v1.0/users/{id}/memberOf` | none | `{"value":[{"@odata.type":"#microsoft.graph.group","id","displayName"}]}` |
-| POST | `/v1.0/users/{id}/assignLicense` | `addLicenses[]`, `removeLicenses[]` | `200` + user |
+| POST | `/v1.0/users/{id}/assignLicense` | `addLicenses[]`, `removeLicenses[]` | `200` + user; user without `usageLocation` → `400` (Graph requires `usageLocation` for licensed users) |
 | POST | `/v1.0/users/{id}/revokeSignInSessions` | empty | `200` `{"value":true}` |
 | POST | `/v1.0/groups/{groupId}/members/$ref` | `@odata.id` ending in a user id | `204`; already a member returns `400` |
 | DELETE | `/v1.0/groups/{groupId}/members/{userId}/$ref` | none | `204` |
 | GET | `/v1.0/groups?$filter=displayName eq '…'` | none | `{"value":[…]}` |
 
-Every `/v1.0/users/{x}` route accepts either the user `id` or the `userPrincipalName` as `{x}`.
+Every `/v1.0/users/{x}` route accepts either the user `id` or the `userPrincipalName` as `{x}`, except `PUT /users/{id}/manager/$ref`, which is documented with `id` only.
 
 Graph error shape: `{"error":{"code":"…","message":"…"}}`.
 
@@ -141,20 +142,20 @@ Graph error shape: `{"error":{"code":"…","message":"…"}}`.
 | Method | Path | Required body fields | Response |
 | --- | --- | --- | --- |
 | GET | `/rest/api/3/myself` | none | service account user |
-| GET | `/rest/api/3/user/search?query={email}` | none | array of users |
-| POST | `/rest/api/3/issue` | `fields.project.key`, `fields.issuetype.name`, `fields.summary` | `201` `{"id","key","self"}`; status = `To Do` |
+| GET | `/rest/api/3/user/search?query={email}` | none | array of users. Real Jira may omit `emailAddress` (privacy settings): match users on `accountId` after the search, not on `emailAddress` |
+| POST | `/rest/api/3/issue` | `fields.project.key`, `fields.issuetype.name`, `fields.summary` | `201` `{"id","key","self"}`; status = `To Do`. On a real project the required fields come from create-issue metadata and the initial status from the workflow |
 | GET | `/rest/api/3/issue/{key}` | none | `{id,key,fields{…, status{name}}}` (respect `fields=` param) |
 | POST | `/rest/api/3/issue/{key}/comment` | `body` (ADF only; plain string → `400`) | `201` comment |
 | GET | `/rest/api/3/issue/{key}/transitions` | none | `{"transitions":[{"id":"11","name":"To Do","to":{"id":"1","name":"To Do"}},{"id":"21","name":"In Progress","to":{…}},{"id":"31","name":"Done","to":{…}}]}`; ids are seed values only, code acts on the target status |
 | POST | `/rest/api/3/issue/{key}/transitions` | `transition.id` | `204`; status changes; moving to Done fires the Bonita callback (section 5) |
 
-`description` and comment `body` must be Atlassian Document Format (ADF, Jira's JSON rich-text format), as in the real v3 API; a plain string returns `400`. Store as received and render ADF paragraphs, bullet lists and text marks (bold, links) on screen. No `/rest/api/2/` routes.
+`description` and comment `body` must be Atlassian Document Format (ADF, Jira's JSON rich-text format), as in the real v3 API; a plain string returns `400`. Store as received and render ADF paragraphs, bullet lists and text marks (bold, links) on screen. No `/rest/api/2/` routes. Jira error body: `{"errorMessages":[…],"errors":{"field":"msg"}}`.
 
 ### 4.5 Teams Workflows webhook
 
 | Method | Path | Body | Response |
 | --- | --- | --- | --- |
-| POST | `/teams/hook/{channelId}` | `{"type":"message","attachments":[{"contentType":"application/vnd.microsoft.card.adaptive","content":{AdaptiveCard}}]}`; also accept a legacy MessageCard (`@type: MessageCard`) and plain `{"text":"…"}` | `202` empty body. Unknown channel returns `404` (mock-only setup aid; the real webhook always answers `202`) |
+| POST | `/teams/hook/{channelId}` | `{"type":"message","attachments":[{"contentType":"application/vnd.microsoft.card.adaptive","contentUrl":null,"content":{AdaptiveCard}}]}`; also accept a legacy MessageCard (`@type: MessageCard`) and plain `{"text":"…"}` | `202` empty body. Unknown channel returns `404` (mock-only setup aid; the real Workflows trigger answers `202 Accepted` when the flow has no Response action) |
 
 Escalation card example (used by `scripts/demo-run.sh` and the Teams smoke test):
 
@@ -163,18 +164,18 @@ Escalation card example (used by `scripts/demo-run.sh` and the Teams smoke test)
   "type": "message",
   "attachments": [{
     "contentType": "application/vnd.microsoft.card.adaptive",
+    "contentUrl": null,
     "content": {
       "type": "AdaptiveCard", "version": "1.5",
-      "msteams": { "style": "attention" },
-      "body": [
-        { "type": "TextBlock", "text": "⚠️ Taak verlopen: werkplek inrichten", "weight": "Bolder", "size": "Medium" },
-        { "type": "FactSet", "facts": [
-          { "title": "Medewerker", "value": "Sanne de Vries" },
-          { "title": "Startdatum", "value": "01-12-2026" },
-          { "title": "Verantwoordelijk", "value": "Lotte Jansen (Facilities)" },
-          { "title": "Escalatie naar", "value": "Ruben de Boer" }
-        ]}
-      ],
+      "body": [{ "type": "Container", "style": "attention", "items": [
+          { "type": "TextBlock", "text": "⚠️ Taak verlopen: werkplek inrichten", "weight": "Bolder", "size": "Medium" },
+          { "type": "FactSet", "facts": [
+            { "title": "Medewerker", "value": "Sanne de Vries" },
+            { "title": "Startdatum", "value": "01-12-2026" },
+            { "title": "Verantwoordelijk", "value": "Lotte Jansen (Facilities)" },
+            { "title": "Escalatie naar", "value": "Ruben de Boer" }
+          ]}
+      ]}],
       "actions": [{ "type": "Action.OpenUrl", "title": "Open in Ofelia", "url": "http://localhost:8080/bonita/apps/userAppBonita/task-list" }]
     }
   }]
@@ -272,7 +273,7 @@ Five routes, all in Dutch, all readable on a 1920×1080 projector and also when 
 ### 6.1 `/ui/topdesk` – "ITSM · TOPdesk API (gesimuleerd)"
 
 - **Left: Meldingen** – table of incidents, newest first: Nummer, Korte omschrijving, Aanmelder, Categorie, Status, Extern nummer. Click a row to open a side panel with the full request and the actions timeline (newest first, with author and time).
-- **Tab: Wijzigingen** – same table for operatorChanges with a status pill mapped from `processingStatus` (`simple_notStarted` → `Aangemeld` grey, `simple_inProgress` → `In behandeling` blue, `simple_done`/`simple_closed` → `Afgerond` green). Each change has buttons `In behandeling` and `Afronden`, which send the same JSON Patch as Bonita would (the demo uses these to show Servicedesk progress).
+- **Tab: Wijzigingen** – same table for operatorChanges with a status pill mapped from `processingStatus` (`simple_notStarted` → `Aangemeld` grey, `simple_inProgress` → `In behandeling` blue, `simple_done`/`simple_closed` → `Afgerond` green). Each change has buttons `In behandeling` and `Afronden`, which call `POST /tas/api/operatorChanges/{id}/processingStatusTransitions` (`start` / `implement`) as Bonita would (the demo uses these to show Servicedesk progress).
 - **Button: Nieuwe aanvraag indiensttreding** – opens a form with the onboarding fields from section 5 (pre-filled with Sanne de Vries; a "Wis" link clears it). Applications are checkboxes (SAP, Zaaksysteem, Decos, GIS-viewer). Submit calls `POST /admin/topdesk/onboarding`. On success: toast "Ofelia-proces gestart – case {caseId}".
 - **Persons tab** – list with an `Gearchiveerd` badge for archived persons (shows offboarding).
 
@@ -294,7 +295,7 @@ Five routes, all in Dutch, all readable on a 1920×1080 projector and also when 
 
 - **Left rail**: channel list with unread counters.
 - **Main area**: message feed of the selected channel, newest at the bottom, auto-scroll. Each message shows sender "Ofelia Workflow", time, and the Adaptive Card rendered with the `adaptivecards` library (support TextBlock, FactSet, ColumnSet, Image, Container, Action.OpenUrl). `Action.OpenUrl` opens the URL in a new tab.
-- A card whose first TextBlock starts with ⚠️ or whose `msteams.style`/container style is `attention` gets a red left border (escalation).
+- A card whose first TextBlock starts with ⚠️ or that contains a Container with `style: "attention"` gets a red left border (escalation).
 - "Alle kanalen" toggle shows every channel in one feed, for the overview layout.
 - MessageCard and plain text payloads render as simple cards.
 
@@ -324,7 +325,7 @@ data: {"system":"graph","entity":"user","action":"created","id":"…","summary":
 - Screens read all data from `GET /admin/state`. On any `change` event for their system they refetch it, diff against the previous state and flash new/changed items; the event `summary` feeds the toast.
 - Screen actions (Jira `Start`/`Klaar`, TOPdesk change buttons) call the same mock API routes as Bonita, with header `X-Mock-Source: ui`. Such requests skip `RESPONSE_DELAY_MS`, `FAIL_RATE` and the request log, but run the same code (callback B still fires).
 
-**Reset** – `POST /admin/reset` reloads `seed/*.json`, resets number counters (incidents `I 2610 009`, changes `C2610-004`, Jira `IAM-105`, `AUTO-105`), clears the request log and broadcasts `reset`. Also run on container start when `RESET_ON_START=true`.
+**Reset** – `POST /admin/reset` reloads `seed/*.json`, resets number counters (incidents `I 2610 009`, changes `C 2610 004`, Jira `IAM-105`, `AUTO-105`), clears the request log and broadcasts `reset`. The seed also loads on every start (state is in memory only).
 
 **Configuration (environment variables)**
 
@@ -336,7 +337,6 @@ data: {"system":"graph","entity":"user","action":"created","id":"…","summary":
 | `BONITA_USER` / `BONITA_PASSWORD` | `walter.bates` / `bpm` | Technical user for callbacks |
 | `BONITA_ONBOARDING_PROCESS` | `MedewerkerOnboarding` | Process name to instantiate |
 | `BONITA_MESSAGE_ACCESS` | `accessGranted` | Message name for callback B |
-| `RESET_ON_START` | `true` | Load seed at boot |
 | `RESPONSE_DELAY_MS` | `150` | Artificial latency so calls feel real; `0` in tests |
 | `FAIL_RATE` | `0` | Optional random 5xx rate (0–1) on mock API routes only (never `/admin`, `/events`, `/ui` or `X-Mock-Source: ui`) |
 | `TENANT_ID` | `demo-amsterdam` | Accepted tenant in the token URL (any value accepted, logged) |
@@ -360,7 +360,6 @@ services:
       # BONITA_URL: http://host.docker.internal:8080/bonita
       BONITA_USER: walter.bates
       BONITA_PASSWORD: bpm
-      RESET_ON_START: "true"
       RESPONSE_DELAY_MS: "150"
     volumes:
       - ./seed:/app/seed:ro
