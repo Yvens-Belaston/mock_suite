@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { Store } from '../store.js';
+import { registerChangeRoutes } from './topdesk-changes.js';
 
 export interface Person {
   id: string;
@@ -125,6 +126,10 @@ export function topdeskRoutes(store: Store) {
     });
 
     app.get('/version',async () => ({ version: '3.x-mock' }));
+
+    // --- Operator changes (ticket 15): routes live in ./topdesk-changes.ts ---
+    registerChangeRoutes(app, store);
+    // --- end operator changes ---
 
     app.get<{ Querystring: { query?: string; pageStart?: string; pageSize?: string } }>(
       '/persons',
