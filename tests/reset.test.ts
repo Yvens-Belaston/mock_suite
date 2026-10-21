@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import type { FastifyInstance } from 'fastify';
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { buildServer } from '../src/server.js';
+import { createStore, DEFAULT_SEED_DIR } from '../src/store.js';
 
 describe('admin state and reset', () => {
   let app: FastifyInstance;
@@ -82,5 +86,29 @@ describe('admin state and reset', () => {
     await request(app.server).post('/admin/reset');
     const res = await request(app.server).get('/admin/state');
     expect(res.body.teams.channels[1].name).toBe('Servicedesk');
+  });
+});
+
+describe('POST /admin/reset re-reads the seed files from disk', () => {
+  it('applies a seed file edited after start-up, without a restart', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'seed-'));
+    cpSync(DEFAULT_SEED_DIR, dir, { recursive: true });
+    const app = buildServer({ store: createStore(dir) });
+    await app.ready();
+    try {
+      const teams = JSON.parse(readFileSync(join(dir, 'teams.json'), 'utf8'));
+      teams.channels[0].name = 'Nieuw uit seed';
+      writeFileSync(join(dir, 'teams.json'), JSON.stringify(teams));
+
+      const before = await request(app.server).get('/admin/state');
+      expect(before.body.teams.channels[0].name).toBe('HR Onboarding');
+
+      expect((await request(app.server).post('/admin/reset')).status).toBe(204);
+      const after = await request(app.server).get('/admin/state');
+      expect(after.body.teams.channels[0].name).toBe('Nieuw uit seed');
+    } finally {
+      await app.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
