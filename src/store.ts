@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import { readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -39,6 +40,11 @@ export interface Store {
   defineCounter(name: string, highestInSeed: (seed: State) => number): void;
   /** Take the next number of a counter registered with `defineCounter`. */
   next(name: string): number;
+  /**
+   * Emits `'change'` with the `ChangeEvent` after every `update`, and after `reset` with
+   * `{ system: 'admin', entity: 'state', action: 'reset', id: '', summary, at }`.
+   */
+  readonly emitter: EventEmitter;
   /** Put every system back to the seed, restart counters from the seed and clear `events`. */
   reset(): void;
 }
@@ -57,9 +63,12 @@ export function createStore(seedDir: string = DEFAULT_SEED_DIR): Store {
   let events: ChangeEvent[] = [];
   const counterSeeds = new Map<string, number>();
   let counters = new Map<string, number>();
+  const emitter = new EventEmitter();
+  emitter.setMaxListeners(0); // one listener per open /events connection
 
   return {
     get: () => state,
+    emitter,
     get events() {
       return events;
     },
@@ -67,6 +76,7 @@ export function createStore(seedDir: string = DEFAULT_SEED_DIR): Store {
       const systemState = (state[system] ??= {});
       const event: ChangeEvent = { system, ...fn(systemState), at: new Date().toISOString() };
       events.push(event);
+      emitter.emit('change', event);
       return event;
     },
     defineCounter(name, highestInSeed) {
@@ -84,6 +94,15 @@ export function createStore(seedDir: string = DEFAULT_SEED_DIR): Store {
       state = structuredClone(seed);
       events = [];
       counters = new Map(counterSeeds);
+      // Broadcast only: not appended to the (just cleared) events log.
+      emitter.emit('change', {
+        system: 'admin',
+        entity: 'state',
+        action: 'reset',
+        id: '',
+        summary: 'Demo teruggezet naar de beginsituatie',
+        at: new Date().toISOString(),
+      } satisfies ChangeEvent);
     },
   };
 }
