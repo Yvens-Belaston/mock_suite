@@ -1,0 +1,13 @@
+# Installed and built inside the image; never copy local ones.
+node_modules
+dist
+web/dist
+coverage
+test-results
+playwright-report
+# Repo and agent metadata, secrets.
+.git
+.claude
+.scratch
+.env
+.DS_Store

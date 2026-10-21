@@ -77,8 +77,114 @@ export function graphRoutes(store: Store) {
 
     // Ticket 09: user writes (POST/PATCH user, manager $ref, assignLicense, revokeSignInSessions).
     userWriteRoutes(app, store);
+
+    groupRoutes(app, store);
   };
 }
+
+// ---- Groups and memberships (ticket 10) -------------------------------------------------------
+
+/** A group as stored in `state.graph.groups` (spec section 3). */
+export interface GraphGroup {
+  id: string;
+  displayName: string;
+  memberIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+function groups(store: Store): GraphGroup[] {
+  return store.get().graph.groups as GraphGroup[];
+}
+
+/** The group as Graph returns it (no internal fields). */
+function projectGroup(group: GraphGroup) {
+  return { id: group.id, displayName: group.displayName };
+}
+
+/** Group routes; registered from `graphRoutes`, so they inherit its bearer guard and body parser. */
+function groupRoutes(app: FastifyInstance, store: Store): void {
+  app.get<{ Querystring: { $filter?: string } }>('/v1.0/groups', async (req, reply) => {
+    let list = groups(store);
+    if (req.query.$filter !== undefined) {
+      const filter = parseEqFilter(req.query.$filter, ['displayName']);
+      if (!filter) {
+        return reply
+          .code(400)
+          .send(graphError('Request_UnsupportedQuery', `Unsupported or invalid query filter clause: ${req.query.$filter}`));
+      }
+      list = list.filter((g) => g.displayName.toLowerCase() === filter.value.toLowerCase());
+    }
+    return { '@odata.context': `${ODATA}#groups`, value: list.map(projectGroup) };
+  });
+
+  app.get<{ Params: { x: string } }>('/v1.0/users/:x/memberOf', async (req, reply) => {
+    const user = findUser(store, req.params.x);
+    if (!user) return reply.code(404).send(graphError('Request_ResourceNotFound', notFoundMessage(req.params.x)));
+    const value = groups(store)
+      .filter((g) => g.memberIds.includes(user.id))
+      .map((g) => ({ '@odata.type': '#microsoft.graph.group', ...projectGroup(g) }));
+    return { '@odata.context': `${ODATA}#directoryObjects`, value };
+  });
+
+  app.post<{ Params: { gid: string }; Body: Record<string, unknown> | undefined }>(
+    '/v1.0/groups/:gid/members/$ref',
+    async (req, reply) => {
+      const odataId = req.body?.['@odata.id'];
+      if (typeof odataId !== 'string' || !odataId.trim()) {
+        return reply.code(400).send(graphError('Request_BadRequest', "The request body must contain '@odata.id'."));
+      }
+      const group = findGroup(store, req.params.gid);
+      if (!group) return reply.code(404).send(graphError('Request_ResourceNotFound', notFoundMessage(req.params.gid)));
+      const uid = odataId.replace(/\/+$/, '').split('/').pop() ?? '';
+      const user = users(store).find((u) => u.id === uid);
+      if (!user) return reply.code(404).send(graphError('Request_ResourceNotFound', notFoundMessage(uid)));
+      if (group.memberIds.includes(user.id)) {
+        return reply
+          .code(400)
+          .send(
+            graphError(
+              'Request_BadRequest',
+              "One or more added object references already exist for the following modified properties: 'members'.",
+            ),
+          );
+      }
+      store.update('graph', () => {
+        group.memberIds.push(user.id);
+        group.updatedAt = new Date().toISOString();
+        return {
+          entity: 'group',
+          action: 'updated',
+          id: group.id,
+          summary: `${user.displayName} toegevoegd aan ${group.displayName}`,
+        };
+      });
+      return reply.code(204).send();
+    },
+  );
+
+  app.delete<{ Params: { gid: string; uid: string } }>('/v1.0/groups/:gid/members/:uid/$ref', async (req, reply) => {
+    const { gid, uid } = req.params;
+    const group = findGroup(store, gid);
+    if (!group) return reply.code(404).send(graphError('Request_ResourceNotFound', notFoundMessage(gid)));
+    if (!group.memberIds.includes(uid)) {
+      return reply.code(404).send(graphError('Request_ResourceNotFound', notFoundMessage(uid)));
+    }
+    const name = users(store).find((u) => u.id === uid)?.displayName ?? uid;
+    store.update('graph', () => {
+      group.memberIds = group.memberIds.filter((m) => m !== uid);
+      group.updatedAt = new Date().toISOString();
+      return { entity: 'group', action: 'updated', id: group.id, summary: `${name} verwijderd uit ${group.displayName}` };
+    });
+    return reply.code(204).send();
+  });
+}
+
+function findGroup(store: Store, gid: string): GraphGroup | undefined {
+  return groups(store).find((g) => g.id === gid);
+}
+
+// ---- end groups (ticket 10) -------------------------------------------------------------------
 
 const ODATA = 'https://graph.microsoft.com/v1.0/$metadata';
 

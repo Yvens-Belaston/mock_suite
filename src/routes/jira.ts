@@ -40,6 +40,15 @@ export interface JiraProject {
   name: string;
 }
 
+/** Stored comment; `body` is ADF as received, `author` is expanded in API responses. */
+export interface JiraComment {
+  id: string;
+  author: { accountId: string };
+  body: unknown;
+  created: string;
+  updated: string;
+}
+
 export interface JiraIssue {
   id: string;
   key: string;
@@ -50,13 +59,57 @@ export interface JiraIssue {
     status: { name: string };
     assignee?: { accountId: string } | null;
   };
-  comments: unknown[];
+  comments: JiraComment[];
   createdAt: string;
   updatedAt: string;
 }
 
 function issues(store: Store): JiraIssue[] {
   return store.get().jira.issues as JiraIssue[];
+}
+
+const ISSUE_NOT_FOUND = 'Issue does not exist or you do not have permission to see it.';
+
+function findIssue(store: Store, keyOrId: string): JiraIssue | undefined {
+  return issues(store).find((i) => i.key === keyOrId || i.id === keyOrId);
+}
+
+/** A workflow transition. Ids (`11/21/31`) are seed values only; behaviour keys off `to.name`. */
+export interface JiraTransition {
+  id: string;
+  name: string;
+  to: { id: string; name: string };
+}
+
+function transitions(store: Store): JiraTransition[] {
+  return store.get().jira.transitions as JiraTransition[];
+}
+
+export type TransitionResult =
+  | { ok: true; issue: JiraIssue; transition: JiraTransition }
+  | { ok: false; reason: 'issue_not_found' | 'unknown_transition' };
+
+/**
+ * The one place an issue changes status (API route now; screen buttons and drag go through the route).
+ * Acts on the transition's target status (`to.name`), never on the id itself.
+ * Ticket 30: hook the Bonita callback here when `transition.to.name === 'Done'`.
+ */
+export function transitionIssue(store: Store, keyOrId: string, transitionId: string): TransitionResult {
+  const found = findIssue(store, keyOrId);
+  if (!found) return { ok: false, reason: 'issue_not_found' };
+  const transition = transitions(store).find((t) => t.id === transitionId);
+  if (!transition) return { ok: false, reason: 'unknown_transition' };
+
+  const key = found.key;
+  const status = transition.to.name;
+  let issue = found;
+  store.update('jira', (jira) => {
+    issue = (jira.issues as JiraIssue[]).find((i) => i.key === key)!;
+    issue.fields.status = { name: status };
+    issue.updatedAt = new Date().toISOString();
+    return { entity: 'issue', action: 'updated', id: key, summary: `${key} naar ${status}` };
+  });
+  return { ok: true, issue, transition };
 }
 
 function keyNumber(key: string): number {
@@ -105,6 +158,9 @@ export function jiraRoutes(store: Store) {
       );
     }
     store.defineCounter('jira.issueId', (seed) => Math.max(10000, ...(seed.jira.issues as JiraIssue[]).map((i) => Number(i.id))));
+    store.defineCounter('jira.commentId', (seed) =>
+      Math.max(10000, ...(seed.jira.issues as JiraIssue[]).flatMap((i) => i.comments as JiraComment[]).map((c) => Number(c.id))),
+    );
 
     const selfUrl = (req: { protocol: string; headers: { host?: string } }, id: string) =>
       `${req.protocol}://${req.headers.host ?? 'localhost'}${JIRA_BASE}/issue/${id}`;
@@ -175,5 +231,54 @@ export function jiraRoutes(store: Store) {
       const apiIssue = toApiIssue(store, issue, selfUrl(req, issue.id));
       return { ...apiIssue, fields: selectFields(apiIssue.fields, req.query.fields) };
     });
+
+    app.post<{ Params: { key: string }; Body: { body?: unknown } }>(`${JIRA_BASE}/issue/:key/comment`, async (req, reply) => {
+      const found = findIssue(store, req.params.key);
+      if (!found) return jiraError(reply, 404, [ISSUE_NOT_FOUND]);
+      if (!isAdf(req.body?.body))
+        return jiraError(reply, 400, [], { body: 'Comment body is not valid! It must be an Atlassian Document (see the Atlassian Document Format)' });
+
+      const me = users(store).find((u) => u.emailAddress === SERVICE_ACCOUNT_EMAIL)!;
+      const now = new Date().toISOString();
+      const comment: JiraComment = {
+        id: String(store.next('jira.commentId')),
+        author: { accountId: me.accountId },
+        body: req.body!.body,
+        created: now,
+        updated: now,
+      };
+      store.update('jira', (jira) => {
+        const issue = (jira.issues as JiraIssue[]).find((i) => i.key === found.key)!;
+        issue.comments.push(comment);
+        issue.updatedAt = now;
+        return { entity: 'issue', action: 'updated', id: issue.key, summary: `Opmerking bij ${issue.key}` };
+      });
+      return reply.code(201).send({
+        ...comment,
+        self: `${selfUrl(req, found.id)}/comment/${comment.id}`,
+        author: toApiUser(me),
+        updateAuthor: toApiUser(me),
+      });
+    });
+
+    app.get<{ Params: { key: string } }>(`${JIRA_BASE}/issue/:key/transitions`, async (req, reply) => {
+      if (!findIssue(store, req.params.key)) return jiraError(reply, 404, [ISSUE_NOT_FOUND]);
+      return { transitions: transitions(store) };
+    });
+
+    app.post<{ Params: { key: string }; Body: { transition?: { id?: unknown } } }>(
+      `${JIRA_BASE}/issue/:key/transitions`,
+      async (req, reply) => {
+        const id = req.body?.transition?.id;
+        if (!findIssue(store, req.params.key)) return jiraError(reply, 404, [ISSUE_NOT_FOUND]);
+        if (typeof id !== 'string' && typeof id !== 'number') return jiraError(reply, 400, ['Missing transition id.']);
+        const result = transitionIssue(store, req.params.key, String(id));
+        if (!result.ok) {
+          if (result.reason === 'issue_not_found') return jiraError(reply, 404, [ISSUE_NOT_FOUND]);
+          return jiraError(reply, 400, [`Transition id '${id}' is not valid for this issue.`]);
+        }
+        return reply.code(204).send();
+      },
+    );
   };
 }
