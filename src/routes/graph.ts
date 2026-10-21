@@ -362,10 +362,12 @@ function userWriteRoutes(app: FastifyInstance, store: Store): void {
   app.patch<{ Params: { x: string } }>('/v1.0/users/:x', async (req, reply) => {
     const user = findUser(store, req.params.x);
     if (!user) return reply.code(404).send(notFound(req.params.x));
-    const changes = writableFields(asBody(req.body));
-    if (Object.keys(changes).length === 0) {
-      return reply.code(400).send(badRequest('The request body contains no updatable user properties.'));
+    if (req.body != null && (typeof req.body !== 'object' || Array.isArray(req.body))) {
+      return reply.code(400).send(badRequest('The request body must be a JSON object.'));
     }
+    const changes = writableFields(asBody(req.body));
+    // Nothing we know how to update: accept it unchanged, like Graph (spec 4: never require more).
+    if (Object.keys(changes).length === 0) return reply.code(204).send();
     if (changes.userPrincipalName !== undefined && upnTaken(store, String(changes.userPrincipalName), user.id)) {
       return reply.code(400).send(badRequest(DUPLICATE_UPN));
     }

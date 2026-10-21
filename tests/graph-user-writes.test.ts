@@ -118,8 +118,18 @@ describe('PATCH /v1.0/users/{x}', () => {
     expect(res.body.error.code).toBe('Request_ResourceNotFound');
   });
 
-  it('answers 400 for an empty or non-object body', async () => {
-    expect((await api().patch(`/v1.0/users/${PIETER}`).set(AUTH).send({})).status).toBe(400);
+  it('answers 204 and changes nothing for a body without updatable fields (never require more)', async () => {
+    const before = (await getUser(PIETER)).body;
+    const eventsBefore = app.store.events.length;
+    for (const body of [{}, { unknownField: 'x', passwordProfile: { password: 'p' } }]) {
+      const res = await api().patch(`/v1.0/users/${PIETER}`).set(AUTH).send(body);
+      expect(res.status).toBe(204);
+    }
+    expect((await getUser(PIETER)).body).toEqual(before);
+    expect(app.store.events.length).toBe(eventsBefore);
+  });
+
+  it('answers 400 for a non-object body', async () => {
     expect((await api().patch(`/v1.0/users/${PIETER}`).set(AUTH).send([1])).status).toBe(400);
   });
 
@@ -127,6 +137,24 @@ describe('PATCH /v1.0/users/{x}', () => {
     const res = await api().patch(`/v1.0/users/${FATIMA}`).set(AUTH).send({ userPrincipalName: PIETER_UPN });
     expect(res.status).toBe(400);
     expect(res.body.error.message).toContain('already exists');
+  });
+});
+
+describe('Graph write routes without a bearer token', () => {
+  it.each([
+    ['POST', '/v1.0/users', sanne],
+    ['PATCH', `/v1.0/users/${PIETER}`, { accountEnabled: false }],
+    ['PUT', `/v1.0/users/${PIETER}/manager/$ref`, { '@odata.id': `https://graph.microsoft.com/v1.0/users/${FATIMA}` }],
+    ['POST', `/v1.0/users/${PIETER}/assignLicense`, { addLicenses: [{ skuId: M365_E3 }], removeLicenses: [] }],
+    ['POST', `/v1.0/users/${PIETER}/revokeSignInSessions`, {}],
+    ['POST', '/v1.0/groups/any/members/$ref', { '@odata.id': `https://graph.microsoft.com/v1.0/users/${PIETER}` }],
+    ['DELETE', `/v1.0/groups/any/members/${PIETER}/$ref`, undefined],
+  ] as const)('%s %s answers 401 and changes nothing', async (method, path, body) => {
+    const call = api()[method.toLowerCase() as 'post' | 'patch' | 'put' | 'delete'](path);
+    const res = await (body === undefined ? call : call.send(body));
+    expect(res.status).toBe(401);
+    expect(res.body.error.code).toBe('InvalidAuthenticationToken');
+    expect(app.store.events).toEqual([]);
   });
 });
 
