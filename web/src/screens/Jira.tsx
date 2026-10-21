@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type DragEvent } from 'react';
 import { BookOpen, CheckSquare, Zap, type LucideIcon } from 'lucide-react';
 import { Shell, toast, useLiveState } from '../components/Shell';
 
@@ -53,6 +53,32 @@ export async function moveIssue(key: string, status: ColumnName): Promise<void> 
   if (!res.ok) toast(`${key} verplaatsen mislukt (${res.status})`, 'error');
 }
 
+// --- Drag and drop (ticket 23): native HTML5; a drop maps column -> transition by `to.name` via moveIssue. ---
+const DRAG_TYPE = 'application/x-jira-issue';
+
+function startCardDrag(e: DragEvent<HTMLElement>, issue: JiraIssue) {
+  e.dataTransfer.setData(DRAG_TYPE, JSON.stringify({ key: issue.key, status: issue.fields.status.name }));
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function columnDropProps(col: ColumnName) {
+  return {
+    onDragOver: (e: DragEvent<HTMLElement>) => {
+      if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    },
+    onDrop: (e: DragEvent<HTMLElement>) => {
+      const raw = e.dataTransfer.getData(DRAG_TYPE);
+      if (!raw) return;
+      e.preventDefault();
+      const { key, status } = JSON.parse(raw) as { key: string; status: string };
+      if (status !== col) void moveIssue(key, col);
+    },
+  };
+}
+// --- end drag and drop ---
+
 const TYPE_ICONS: Record<string, LucideIcon> = { Epic: Zap, Story: BookOpen };
 
 function initials(name: string): string {
@@ -81,6 +107,8 @@ function Card({ issue, users, flash }: { issue: JiraIssue; users: JiraUser[]; fl
     <article
       aria-label={issue.key}
       data-key={issue.key}
+      draggable
+      onDragStart={(e) => startCardDrag(e, issue)}
       className={`rounded-md border border-gray-200 bg-white p-3 shadow-sm ${flash ? 'flash' : ''}`}
     >
       <div className="flex items-center gap-2 text-gray-500">
@@ -167,7 +195,7 @@ export function Jira() {
           {COLUMNS.map((col) => {
             const inCol = issues.filter((i) => i.fields.status.name === col);
             return (
-              <section key={col} aria-label={col} data-column={col} className="rounded-lg bg-gray-100 p-3">
+              <section key={col} aria-label={col} data-column={col} {...columnDropProps(col)} className="rounded-lg bg-gray-100 p-3">
                 <h2 className="mb-3 flex items-center gap-2 font-semibold text-gray-700" style={{ fontSize: 14 }}>
                   {col} <span className="text-gray-500">{inCol.length}</span>
                 </h2>
