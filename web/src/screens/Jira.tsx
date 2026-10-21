@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type DragEvent } from 'react';
 import { BookOpen, CheckSquare, Zap, type LucideIcon } from 'lucide-react';
 import { Shell, toast, useLiveState } from '../components/Shell';
 import { JiraCardModal } from './JiraCardModal';
@@ -17,6 +17,8 @@ export interface JiraIssue {
     status: { name: string };
   };
   comments: unknown[];
+  /** Callback B result (ticket 30), set once a `case-*` issue reached Done. */
+  bonitaCallback?: { status: 'ok' | 'error'; httpStatus: number | null; at: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -53,6 +55,32 @@ export async function moveIssue(key: string, status: ColumnName): Promise<void> 
   });
   if (!res.ok) toast(`${key} verplaatsen mislukt (${res.status})`, 'error');
 }
+
+// --- Drag and drop (ticket 23): native HTML5; a drop maps column -> transition by `to.name` via moveIssue. ---
+const DRAG_TYPE = 'application/x-jira-issue';
+
+function startCardDrag(e: DragEvent<HTMLElement>, issue: JiraIssue) {
+  e.dataTransfer.setData(DRAG_TYPE, JSON.stringify({ key: issue.key, status: issue.fields.status.name }));
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function columnDropProps(col: ColumnName) {
+  return {
+    onDragOver: (e: DragEvent<HTMLElement>) => {
+      if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    },
+    onDrop: (e: DragEvent<HTMLElement>) => {
+      const raw = e.dataTransfer.getData(DRAG_TYPE);
+      if (!raw) return;
+      e.preventDefault();
+      const { key, status } = JSON.parse(raw) as { key: string; status: string };
+      if (status !== col) void moveIssue(key, col);
+    },
+  };
+}
+// --- end drag and drop ---
 
 const TYPE_ICONS: Record<string, LucideIcon> = { Epic: Zap, Story: BookOpen };
 
@@ -93,11 +121,14 @@ function Card({
       aria-label={issue.key}
       data-key={issue.key}
       onClick={() => onOpen(issue)}
+      draggable
+      onDragStart={(e) => startCardDrag(e, issue)}
       className={`cursor-pointer rounded-md border border-gray-200 bg-white p-3 shadow-sm ${flash ? 'flash' : ''}`}
     >
       <div className="flex items-center gap-2 text-gray-500">
         <TypeIcon className="h-4 w-4" style={{ color: 'var(--accent)' }} aria-label={fields.issuetype.name} />
         <span className="font-medium">{issue.key}</span>
+        <OfeliaChip callback={issue.bonitaCallback} />
         {assignee && (
           <span
             className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-700"
@@ -134,6 +165,23 @@ function Card({
     </article>
   );
 }
+
+// --- Ofelia chip (ticket 30): green when Bonita accepted callback B, red on error. Reusable in the card modal (22).
+export function OfeliaChip({ callback }: { callback: JiraIssue['bonitaCallback'] }) {
+  if (!callback) return null;
+  const ok = callback.status === 'ok';
+  return (
+    <span
+      data-testid="ofelia-chip"
+      data-status={callback.status}
+      className={`rounded-full px-2 py-0.5 text-xs font-medium ${ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+      title={callback.httpStatus ? `Bonita HTTP ${callback.httpStatus}` : 'Bonita niet bereikbaar'}
+    >
+      {ok ? 'Ofelia notified' : `Ofelia fout${callback.httpStatus ? ` (${callback.httpStatus})` : ''}`}
+    </span>
+  );
+}
+// --- end Ofelia chip
 
 function CardButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
@@ -184,7 +232,7 @@ export function Jira() {
           {COLUMNS.map((col) => {
             const inCol = issues.filter((i) => i.fields.status.name === col);
             return (
-              <section key={col} aria-label={col} data-column={col} className="rounded-lg bg-gray-100 p-3">
+              <section key={col} aria-label={col} data-column={col} {...columnDropProps(col)} className="rounded-lg bg-gray-100 p-3">
                 <h2 className="mb-3 flex items-center gap-2 font-semibold text-gray-700" style={{ fontSize: 14 }}>
                   {col} <span className="text-gray-500">{inCol.length}</span>
                 </h2>

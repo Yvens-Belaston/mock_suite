@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { Store } from '../store.js';
+import { bonitaConfig, sendAccessGranted, type BonitaCallbackResult } from '../bonita.js';
 
 export const JIRA_BASE = '/rest/api/3';
 const SERVICE_ACCOUNT_EMAIL = 'svc-ofelia@demo-amsterdam.onmicrosoft.com';
@@ -60,6 +61,8 @@ export interface JiraIssue {
     assignee?: { accountId: string } | null;
   };
   comments: JiraComment[];
+  /** Last callback B result (Done with a `case-*` label); absent until one fired. */
+  bonitaCallback?: BonitaCallbackResult;
   createdAt: string;
   updatedAt: string;
 }
@@ -92,9 +95,9 @@ export type TransitionResult =
 /**
  * The one place an issue changes status (API route now; screen buttons and drag go through the route).
  * Acts on the transition's target status (`to.name`), never on the id itself.
- * Ticket 30: hook the Bonita callback here when `transition.to.name === 'Done'`.
+ * Reaching Done fires callback B for issues labelled `case-{caseId}` (resolves after Bonita answered).
  */
-export function transitionIssue(store: Store, keyOrId: string, transitionId: string): TransitionResult {
+export async function transitionIssue(store: Store, keyOrId: string, transitionId: string): Promise<TransitionResult> {
   const found = findIssue(store, keyOrId);
   if (!found) return { ok: false, reason: 'issue_not_found' };
   const transition = transitions(store).find((t) => t.id === transitionId);
@@ -109,7 +112,33 @@ export function transitionIssue(store: Store, keyOrId: string, transitionId: str
     issue.updatedAt = new Date().toISOString();
     return { entity: 'issue', action: 'updated', id: key, summary: `${key} naar ${status}` };
   });
+  if (status === 'Done') await notifyOfelia(store, issue);
   return { ok: true, issue, transition };
+}
+
+/** Callback B (spec section 5): only issues the Bonita connector labelled `case-{caseId}`; skipped when Bonita is disabled. */
+async function notifyOfelia(store: Store, issue: JiraIssue): Promise<void> {
+  const labels = (issue.fields.labels ?? []) as string[];
+  const caseId = labels.map((l) => /^case-(\d+)$/.exec(l)?.[1]).find(Boolean);
+  if (!caseId || !bonitaConfig().enabled) return;
+
+  const assignee = issue.fields.assignee;
+  const user = assignee ? users(store).find((u) => u.accountId === assignee.accountId) : undefined;
+  const result = await sendAccessGranted({ caseId, issueKey: issue.key, resolvedBy: user?.displayName ?? 'Onbekend' });
+
+  const key = issue.key;
+  store.update('jira', (jira) => {
+    const stored = (jira.issues as JiraIssue[]).find((i) => i.key === key);
+    if (stored) stored.bonitaCallback = result;
+    return result.status === 'ok'
+      ? { entity: 'issue', action: 'callback_ok', id: key, summary: `Ofelia geïnformeerd: ${key} klaar (case ${caseId})` }
+      : {
+          entity: 'issue',
+          action: 'callback_error',
+          id: key,
+          summary: `Fout bij informeren Ofelia over ${key} (${result.httpStatus ?? 'geen verbinding'})`,
+        };
+  });
 }
 
 function keyNumber(key: string): number {
@@ -272,7 +301,7 @@ export function jiraRoutes(store: Store) {
         const id = req.body?.transition?.id;
         if (!findIssue(store, req.params.key)) return jiraError(reply, 404, [ISSUE_NOT_FOUND]);
         if (typeof id !== 'string' && typeof id !== 'number') return jiraError(reply, 400, ['Missing transition id.']);
-        const result = transitionIssue(store, req.params.key, String(id));
+        const result = await transitionIssue(store, req.params.key, String(id));
         if (!result.ok) {
           if (result.reason === 'issue_not_found') return jiraError(reply, 404, [ISSUE_NOT_FOUND]);
           return jiraError(reply, 400, [`Transition id '${id}' is not valid for this issue.`]);

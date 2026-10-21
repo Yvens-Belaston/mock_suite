@@ -104,8 +104,11 @@ function AdaptiveCardView({ card }: { card: Json }) {
   return <div ref={host} className="teams-card" />;
 }
 
-/** One feed entry: sender, Dutch time and the payload rendered as an Adaptive Card (red border on escalation). */
-export function MessageItem({ message, flash }: { message: TeamsMessage; flash: boolean }) {
+/**
+ * One feed entry: sender, Dutch time and the payload rendered as an Adaptive Card (red border on escalation).
+ * `channel`: channel name shown in the header, only in the "Alle kanalen" feed (ticket 26).
+ */
+export function MessageItem({ message, flash, channel }: { message: TeamsMessage; flash: boolean; channel?: string }) {
   const card = useMemo(() => toAdaptiveCard(message.payload), [message.payload]);
   const escalation = isEscalation(card);
   return (
@@ -122,6 +125,7 @@ export function MessageItem({ message, flash }: { message: TeamsMessage; flash: 
         <time dateTime={message.receivedAt} className="text-gray-500">
           {dutchTime(message.receivedAt)}
         </time>
+        {channel && <span className="text-gray-500"># {channel}</span>}
       </div>
       <AdaptiveCardView card={card} />
     </li>

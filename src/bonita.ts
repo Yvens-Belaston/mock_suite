@@ -86,3 +86,45 @@ export async function bonitaFetch(path: string, init?: RequestInit): Promise<Res
 export function resetBonitaClient(): void {
   defaultClient = undefined;
 }
+
+/** Outcome of a callback into Bonita, stored on the mock record (e.g. `issue.bonitaCallback`). */
+export interface BonitaCallbackResult {
+  status: 'ok' | 'error';
+  /** Bonita's HTTP status; `null` when Bonita could not be reached or login failed. */
+  httpStatus: number | null;
+  at: string;
+}
+
+/** Message values carry their Java type explicitly, else Bonita may guess Integer for the Long (spec section 5). */
+const str = (value: string) => ({ value, type: 'java.lang.String' });
+const long = (value: string) => ({ value, type: 'java.lang.Long' });
+
+/**
+ * Callback B (spec section 5): tell onboarding case `caseId` that Jira issue `issueKey` is Done.
+ * Message name and target process come from BONITA_MESSAGE_ACCESS / BONITA_ONBOARDING_PROCESS.
+ * Never throws: any failure comes back as `status: 'error'`. Callers skip it when Bonita is disabled.
+ */
+export async function sendAccessGranted(
+  msg: { caseId: string; issueKey: string; resolvedBy: string },
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<BonitaCallbackResult> {
+  const body = {
+    messageName: env.BONITA_MESSAGE_ACCESS ?? 'accessGranted',
+    targetProcess: env.BONITA_ONBOARDING_PROCESS ?? 'MedewerkerOnboarding',
+    correlations: { caseId: long(msg.caseId), issueKey: str(msg.issueKey) },
+    messageContent: { issueKey: str(msg.issueKey), resolvedBy: str(msg.resolvedBy) },
+  };
+  let httpStatus: number | null = null;
+  try {
+    const res = await bonitaFetch('/API/bpm/message', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    httpStatus = res.status;
+  } catch {
+    // Unreachable or login refused: reported as an error result, never a crash.
+  }
+  const ok = httpStatus !== null && httpStatus >= 200 && httpStatus <= 299;
+  return { status: ok ? 'ok' : 'error', httpStatus, at: new Date().toISOString() };
+}
