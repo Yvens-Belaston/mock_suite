@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Shell, useLiveState } from '../components/Shell';
+import { OnboardingButton } from './OnboardingForm';
 
 /** Stored TOPdesk incident as returned by `/admin/state`.topdesk.incidents (spec section 3). */
 export interface Incident {
@@ -63,7 +64,7 @@ export function Topdesk() {
             </button>
           ))}
         </div>
-        {/* Ticket 18: the "Nieuwe aanvraag indiensttreding" button goes here (right-aligned with ml-auto). */}
+        <OnboardingButton />
       </div>
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
         {tab === 'Meldingen' && <Meldingen live={live} />}
