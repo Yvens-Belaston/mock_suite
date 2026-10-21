@@ -116,8 +116,8 @@ test('a first TextBlock starting with ⚠️ marks escalation; other cards rende
   await expect(page.getByTestId('teams-feed').getByText('Onboarding afgerond: Julia Peters')).toHaveCount(0);
 });
 
-test('messages show the time in Dutch format', async ({ page, request }) => {
-  await request.post('/admin/reset');
+test('messages show the time in Dutch format', async ({ page }) => {
+  // No /admin/reset here: the seed is loaded at server start, and a global reset would race the parallel tests.
   await openChannel(page, 'hr-onboarding');
   // Seed message received 2026-10-14T08:30:00Z = 10:30 in Amsterdam (CEST).
   const seeded = page.getByTestId('teams-message').filter({ hasText: 'Onboarding afgerond: Julia Peters' });
