@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { Store } from '../store.js';
+import { registerIncidentRoutes } from './topdesk-incidents.js';
 
 export interface Person {
   id: string;
@@ -125,6 +126,10 @@ export function topdeskRoutes(store: Store) {
     });
 
     app.get('/version',async () => ({ version: '3.x-mock' }));
+
+    // --- Incidents (ticket 14): routes live in ./topdesk-incidents.ts ---
+    registerIncidentRoutes(app, store);
+    // --- end incidents ---
 
     app.get<{ Querystring: { query?: string; pageStart?: string; pageSize?: string } }>(
       '/persons',
