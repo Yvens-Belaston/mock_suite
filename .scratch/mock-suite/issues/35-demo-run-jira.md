@@ -1,6 +1,6 @@
 # 35 – Add the Jira steps to the demo script
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 34, 20
 Spec: `.scratch/mock-suite/spec.md` §9 (step 3)
 
@@ -25,3 +25,7 @@ Files:
 
 ## Acceptance
 Same command as ticket 33 exits 0.
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/35`, merged).

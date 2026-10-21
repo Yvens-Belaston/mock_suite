@@ -1,6 +1,6 @@
 # 32 – Show the last 5 API calls under the overview
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 04, 31
 Spec: `.scratch/mock-suite/spec.md` §6.5
 
@@ -26,3 +26,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/overview-bar.spec.ts` exits 0.
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/32`, merged).

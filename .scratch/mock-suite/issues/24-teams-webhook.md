@@ -1,6 +1,6 @@
 # 24 – Receive Teams workflow webhook messages
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 04
 Spec: `.scratch/mock-suite/spec.md` §4.5, §3
 
@@ -30,3 +30,7 @@ Files:
 
 ## Acceptance
 `npx vitest run tests/teams-webhook.test.ts` exits 0 (202 for each of the 3 payload kinds; 404 unknown channel; 400 garbage).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/24`, merged).

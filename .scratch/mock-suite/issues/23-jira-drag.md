@@ -1,6 +1,6 @@
 # 23 – Drag Jira cards between columns
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 21
 Spec: `.scratch/mock-suite/spec.md` §6.3
 
@@ -26,3 +26,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/jira-drag.spec.ts` exits 0 (`dragTo` Done column → card is in Done).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/23`, merged).

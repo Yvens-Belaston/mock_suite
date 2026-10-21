@@ -1,6 +1,6 @@
 # 28 – Log in to Bonita and retry once on 401
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 01
 Spec: `.scratch/mock-suite/spec.md` §5 (Login)
 
@@ -28,3 +28,7 @@ Files:
 
 ## Acceptance
 `npx vitest run tests/bonita-client.test.ts` exits 0 (login once for two calls; re-login and success after a stubbed 401).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/28`, merged).

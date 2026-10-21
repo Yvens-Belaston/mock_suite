@@ -1,6 +1,6 @@
 # 05 – Build an empty React app with Vite and Tailwind
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 01
 Spec: `.scratch/mock-suite/spec.md` §2, §6.6
 
@@ -30,3 +30,7 @@ Files:
 
 ## Acceptance
 `npm run build:web && grep -q Gesimuleerd web/dist/assets/*.js` exits 0.
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/05`, merged).

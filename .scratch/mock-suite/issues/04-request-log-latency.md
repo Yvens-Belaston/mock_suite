@@ -1,6 +1,6 @@
 # 04 – Log mock API requests, add artificial latency and optional failures
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 02
 Spec: `.scratch/mock-suite/spec.md` §4.6, §7 (config table), §6.5
 
@@ -31,3 +31,7 @@ Files:
 
 ## Acceptance
 `npx vitest run tests/request-log.test.ts` exits 0 (a mock-route request is listed in `/admin/requests`; the same request with `X-Mock-Source: ui` is not).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/04`, merged).

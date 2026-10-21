@@ -1,6 +1,6 @@
 # 36 – Add the Teams escalation to the demo script
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 35, 24
 Spec: `.scratch/mock-suite/spec.md` §9 (step 4)
 
@@ -25,3 +25,7 @@ Files:
 
 ## Acceptance
 Same command as ticket 33 exits 0.
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/36`, merged).

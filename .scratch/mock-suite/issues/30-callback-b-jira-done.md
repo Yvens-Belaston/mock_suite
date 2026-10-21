@@ -1,6 +1,6 @@
 # 30 – Notify Ofelia when a case-linked Jira issue reaches Done
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 21, 28
 Spec: `.scratch/mock-suite/spec.md` §5 (Callback B), §6.3
 
@@ -29,3 +29,7 @@ Files:
 
 ## Acceptance
 `npx vitest run tests/callback-b.test.ts` exits 0 (exact message body at the stub; unlabelled issue sends nothing; stub 500 → `bonitaCallback.status == "error"`).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/30`, merged).

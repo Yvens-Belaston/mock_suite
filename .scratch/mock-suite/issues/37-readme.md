@@ -1,6 +1,6 @@
 # 37 – Write the README for presenters
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 07, 29
 Spec: `.scratch/mock-suite/spec.md` §10 (milestone 8)
 
@@ -25,3 +25,7 @@ Files:
 
 ## Acceptance
 `grep -q 'host.docker.internal' README.md && grep -q 'bonita-contract.json' README.md && grep -q 'demo-run.sh' README.md` exits 0.
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/37`, merged).

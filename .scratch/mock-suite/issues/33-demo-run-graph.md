@@ -1,6 +1,6 @@
 # 33 – Script the Entra steps of the demo with curl
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 09, 10
 Spec: `.scratch/mock-suite/spec.md` §9 (steps 1, 5 Graph part)
 
@@ -26,3 +26,7 @@ Files:
 
 ## Acceptance
 `RESPONSE_DELAY_MS=0 BONITA_ENABLED=false npm run dev & sleep 2; BASE=http://localhost:8080 PAUSE=0 scripts/demo-run.sh` exits 0.
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/33`, merged).

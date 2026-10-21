@@ -1,6 +1,6 @@
 # 07 – Write the Docker image and compose files
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 06
 Spec: `.scratch/mock-suite/spec.md` §8
 
@@ -30,3 +30,7 @@ Files:
 
 ## Acceptance
 `npx vitest run tests/docker-files.test.ts` exits 0.
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/07`, merged).

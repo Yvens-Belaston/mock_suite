@@ -1,6 +1,6 @@
 # 22 – Open a Jira card to read its description and comments
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 21
 Spec: `.scratch/mock-suite/spec.md` §4.4, §6.3
 
@@ -27,3 +27,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/jira-modal.spec.ts` exits 0 (a description with a bold mark renders inside a `<strong>`).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/22`, merged).

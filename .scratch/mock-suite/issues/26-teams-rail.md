@@ -1,6 +1,6 @@
 # 26 – Add the Teams channel list with unread counters and an all-channels view
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 25
 Spec: `.scratch/mock-suite/spec.md` §6.4
 
@@ -26,3 +26,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/teams-rail.spec.ts` exits 0 (a message to a non-selected channel increments its counter).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/26`, merged).

@@ -1,6 +1,6 @@
 # 12 – Show user details, audit trail and groups on the Entra screen
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 10, 11
 Spec: `.scratch/mock-suite/spec.md` §6.2
 
@@ -26,3 +26,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/entra-panel.spec.ts` exits 0 (after a PATCH on a user, clicking that user shows the PATCH in the audit list; after adding a member, the Groups tab count increments).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/12`, merged).

@@ -1,6 +1,6 @@
 # 09 – Create and change Graph users
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 08
 Spec: `.scratch/mock-suite/spec.md` §4.3
 
@@ -27,3 +27,7 @@ Files:
 
 ## Acceptance
 `npx vitest run tests/graph-user-writes.test.ts` exits 0 (happy path, 400 missing field, 400 duplicate UPN, 404 unknown user, for each route).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/09`, merged).

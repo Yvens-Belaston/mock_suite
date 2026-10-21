@@ -1,6 +1,6 @@
 # 31 – Build the presenter overview with keyboard shortcuts
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 06
 Spec: `.scratch/mock-suite/spec.md` §6.5
 
@@ -27,3 +27,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/overview.spec.ts` exits 0 (pressing `2` makes the Entra iframe fill the viewport; `Esc` restores 4 visible iframes).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/31`, merged).

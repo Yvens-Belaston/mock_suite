@@ -1,6 +1,6 @@
 # 34 – Add the TOPdesk steps to the demo script
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 33, 15
 Spec: `.scratch/mock-suite/spec.md` §9 (steps 2, 5 TOPdesk part)
 
@@ -25,3 +25,7 @@ Files:
 
 ## Acceptance
 Same command as ticket 33 exits 0.
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/34`, merged).

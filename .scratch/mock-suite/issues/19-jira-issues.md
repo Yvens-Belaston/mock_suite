@@ -1,6 +1,6 @@
 # 19 – Create and read Jira issues
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 04
 Spec: `.scratch/mock-suite/spec.md` §4.1, §4.4, §3
 
@@ -30,3 +30,7 @@ Files:
 
 ## Acceptance
 `npx vitest run tests/jira-issues.test.ts` exits 0.
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/19`, merged).

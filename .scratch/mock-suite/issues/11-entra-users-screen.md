@@ -1,6 +1,6 @@
 # 11 – Show Entra users live on the Entra screen
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 06, 09
 Spec: `.scratch/mock-suite/spec.md` §6.2
 
@@ -27,3 +27,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/entra.spec.ts` exits 0 (seed users visible; a user created via `POST /v1.0/users` appears within 1000 ms with the flash class; after PATCH `accountEnabled:false` it shows `Uitgeschakeld`).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/11`, merged).

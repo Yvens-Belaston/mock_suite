@@ -1,6 +1,6 @@
 # 25 – Show Teams messages with rendered Adaptive Cards and escalation style
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 06, 24
 Spec: `.scratch/mock-suite/spec.md` §6.4
 
@@ -29,3 +29,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/teams.spec.ts` exits 0 (posting the spec §4.5 escalation card shows a message with the escalation border within 1000 ms).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/25`, merged).

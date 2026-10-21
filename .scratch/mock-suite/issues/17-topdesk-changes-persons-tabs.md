@@ -1,6 +1,6 @@
 # 17 – Show TOPdesk changes and persons, with progress buttons
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 15, 16
 Spec: `.scratch/mock-suite/spec.md` §6.1
 
@@ -27,3 +27,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/topdesk-tabs.spec.ts` exits 0 (clicking `Afronden` turns the pill to `Afgerond`; an archived person shows `Gearchiveerd`).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/17`, merged).

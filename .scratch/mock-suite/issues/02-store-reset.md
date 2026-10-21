@@ -1,6 +1,6 @@
 # 02 – Keep state in memory and restore it from seed on reset
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 01
 Spec: `.scratch/mock-suite/spec.md` §2, §3, §4.6, §7
 
@@ -33,3 +33,7 @@ Files:
 
 ## Acceptance
 `npx vitest run tests/reset.test.ts` exits 0 (writes to the store, calls reset, asserts state deep-equals the seed and reset takes < 1000 ms).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/02`, merged).

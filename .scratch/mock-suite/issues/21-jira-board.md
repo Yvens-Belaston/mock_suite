@@ -1,6 +1,6 @@
 # 21 – Show the Jira board live, with Start and Klaar buttons
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 06, 20
 Spec: `.scratch/mock-suite/spec.md` §6.3
 
@@ -27,3 +27,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/jira.spec.ts` exits 0 (an API-created issue appears in To Do within 1000 ms; `Klaar` moves it to Done).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/21`, merged).

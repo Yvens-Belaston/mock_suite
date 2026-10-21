@@ -1,6 +1,6 @@
 # 20 – Comment on and transition Jira issues
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 19
 Spec: `.scratch/mock-suite/spec.md` §4.4
 
@@ -28,3 +28,7 @@ Files:
 
 ## Acceptance
 `npx vitest run tests/jira-transitions.test.ts` exits 0.
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/20`, merged).

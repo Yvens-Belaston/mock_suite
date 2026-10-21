@@ -1,6 +1,6 @@
 # 06 – Serve the screens with a shared header, live dot and toasts
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 03, 05
 Spec: `.scratch/mock-suite/spec.md` §6 (intro), §6.6, §7
 
@@ -32,3 +32,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/shell.spec.ts` exits 0 (each `/ui/*` route shows `Gesimuleerd`; the live dot reaches the connected state).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/06`, merged).

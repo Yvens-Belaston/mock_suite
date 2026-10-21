@@ -1,6 +1,6 @@
 # 16 – Show TOPdesk incidents live on the TOPdesk screen
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 06, 14
 Spec: `.scratch/mock-suite/spec.md` §6.1
 
@@ -27,3 +27,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/topdesk.spec.ts` exits 0 (seed incidents visible; an incident created via API appears within 1000 ms with flash).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/16`, merged).

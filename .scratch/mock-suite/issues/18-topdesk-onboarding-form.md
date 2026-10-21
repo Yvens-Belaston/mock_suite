@@ -1,6 +1,6 @@
 # 18 – Submit a new-hire request from the TOPdesk screen
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 16
 Spec: `.scratch/mock-suite/spec.md` §4.6, §5 (Callback A steps 1–2), §5 (disabled mode), §6.1
 
@@ -31,3 +31,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/topdesk-form.spec.ts` exits 0 (submitting the default form adds an incident with category `Personeel` / `Indiensttreding`).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/18`, merged).

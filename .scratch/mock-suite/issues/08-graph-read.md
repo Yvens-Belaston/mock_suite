@@ -1,6 +1,6 @@
 # 08 – Answer Graph token and user lookup calls
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 04
 Spec: `.scratch/mock-suite/spec.md` §4.1, §4.3, §3
 
@@ -31,3 +31,7 @@ Files:
 
 ## Acceptance
 `npx vitest run tests/graph-read.test.ts` exits 0 (token happy + 400; user by id and by UPN; filter; 404; 401 without bearer).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/08`, merged).

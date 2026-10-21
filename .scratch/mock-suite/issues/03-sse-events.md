@@ -1,6 +1,6 @@
 # 03 – Push every state change to browsers over SSE
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 02
 Spec: `.scratch/mock-suite/spec.md` §7
 
@@ -29,3 +29,7 @@ Files:
 
 ## Acceptance
 `npx vitest run tests/events.test.ts` exits 0 (opens `/events`, writes to the store, asserts a `change` event arrives within 1000 ms).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/03`, merged).

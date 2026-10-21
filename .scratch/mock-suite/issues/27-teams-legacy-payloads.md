@@ -1,6 +1,6 @@
 # 27 – Render MessageCard and plain-text Teams payloads
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 25
 Spec: `.scratch/mock-suite/spec.md` §4.5, §6.4
 
@@ -26,3 +26,7 @@ Files:
 
 ## Acceptance
 `npx playwright test tests/ui/teams-legacy.spec.ts` exits 0 (posting `{"text":"Laptop klaar"}` and a MessageCard to `/teams/hook/servicedesk` shows both as cards containing their text within 1000 ms).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/27`, merged).

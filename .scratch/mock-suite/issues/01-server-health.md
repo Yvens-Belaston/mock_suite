@@ -1,6 +1,6 @@
 # 01 – Start a server that answers a health check
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: none
 Spec: `.scratch/mock-suite/spec.md` §2, §4.6
 
@@ -30,3 +30,7 @@ Files:
 
 ## Acceptance
 `npx vitest run tests/health.test.ts` exits 0 (asserts `GET /health` → 200 `{"status":"ok"}`).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/01`, merged).

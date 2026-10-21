@@ -1,6 +1,6 @@
 # 29 – Start the Ofelia onboarding case from the TOPdesk form
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 18, 28
 Spec: `.scratch/mock-suite/spec.md` §5 (Callback A)
 
@@ -31,3 +31,7 @@ Files:
 
 ## Acceptance
 `npx vitest run tests/callback-a.test.ts` exits 0 (stub receives the exact contract body; `externalNumber` set; stub 500 → error action and incident kept).
+
+## Comments
+
+- 2026-10-21: Resolved by /implement-spec on integration branch `mock-suite` (branch `ticket/29`, merged).
