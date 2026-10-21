@@ -127,4 +127,16 @@ describe('Jira comments and transitions (/rest/api/3)', () => {
     expect(post.status).toBe(404);
     expect(post.body.errorMessages).toEqual(['Issue does not exist or you do not have permission to see it.']);
   });
+
+  it.each([
+    ['POST', '/rest/api/3/issue/IAM-104/comment', { body: ADF }],
+    ['GET', '/rest/api/3/issue/IAM-104/transitions', undefined],
+    ['POST', '/rest/api/3/issue/IAM-104/transitions', { transition: { id: '31' } }],
+  ] as const)('%s %s answers 401 without Basic auth and changes nothing', async (method, url, body) => {
+    const call = request(app.server)[method === 'GET' ? 'get' : 'post'](url);
+    const res = body === undefined ? await call : await call.send(body);
+    expect(res.status).toBe(401);
+    expect(res.body.errorMessages).toEqual([expect.stringContaining('not authenticated')]);
+    expect(app.store.events).toEqual([]);
+  });
 });
