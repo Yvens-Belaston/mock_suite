@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BookOpen, CheckSquare, Zap, type LucideIcon } from 'lucide-react';
 import { Shell, toast, useLiveState } from '../components/Shell';
+import { JiraCardModal } from './JiraCardModal';
 
 export interface JiraIssue {
   id: string;
@@ -72,7 +73,17 @@ function isOverdue(iso: string, status: string): boolean {
   return status !== 'Done' && iso < todayIso;
 }
 
-function Card({ issue, users, flash }: { issue: JiraIssue; users: JiraUser[]; flash: boolean }) {
+function Card({
+  issue,
+  users,
+  flash,
+  onOpen,
+}: {
+  issue: JiraIssue;
+  users: JiraUser[];
+  flash: boolean;
+  onOpen: (issue: JiraIssue) => void;
+}) {
   const { fields } = issue;
   const TypeIcon = TYPE_ICONS[fields.issuetype.name] ?? CheckSquare;
   const assignee = fields.assignee && users.find((u) => u.accountId === fields.assignee!.accountId);
@@ -81,7 +92,8 @@ function Card({ issue, users, flash }: { issue: JiraIssue; users: JiraUser[]; fl
     <article
       aria-label={issue.key}
       data-key={issue.key}
-      className={`rounded-md border border-gray-200 bg-white p-3 shadow-sm ${flash ? 'flash' : ''}`}
+      onClick={() => onOpen(issue)}
+      className={`cursor-pointer rounded-md border border-gray-200 bg-white p-3 shadow-sm ${flash ? 'flash' : ''}`}
     >
       <div className="flex items-center gap-2 text-gray-500">
         <TypeIcon className="h-4 w-4" style={{ color: 'var(--accent)' }} aria-label={fields.issuetype.name} />
@@ -127,7 +139,10 @@ function CardButton({ label, onClick }: { label: string; onClick: () => void }) 
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
       className="rounded border px-2 py-0.5 text-sm font-medium hover:bg-gray-50"
       style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}
     >
@@ -139,6 +154,8 @@ function CardButton({ label, onClick }: { label: string; onClick: () => void }) 
 export function Jira() {
   const { state, changed } = useLiveState<JiraState>('jira');
   const [project, setProject] = useState('IAM');
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const openIssue = state?.issues.find((i) => i.key === openKey);
   const issues = (state?.issues ?? [])
     .filter((i) => i.fields.project.key === project)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -173,7 +190,13 @@ export function Jira() {
                 </h2>
                 <div className="flex flex-col gap-2">
                   {inCol.map((i) => (
-                    <Card key={i.key} issue={i} users={state?.users ?? []} flash={changed.has(i.key)} />
+                    <Card
+                      key={i.key}
+                      issue={i}
+                      users={state?.users ?? []}
+                      flash={changed.has(i.key)}
+                      onOpen={(issue) => setOpenKey(issue.key)}
+                    />
                   ))}
                 </div>
               </section>
@@ -181,6 +204,7 @@ export function Jira() {
           })}
         </div>
       </div>
+      {openIssue && <JiraCardModal issue={openIssue} users={state?.users ?? []} onClose={() => setOpenKey(null)} />}
     </Shell>
   );
 }
