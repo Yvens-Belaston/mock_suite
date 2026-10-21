@@ -8,12 +8,25 @@ test('the bar under the overview shows a new mock API call, live', async ({ page
   const bar = page.getByRole('list', { name: 'Laatste API-aanroepen' });
   await expect(bar).toBeVisible();
 
+  // Parallel specs also log calls and can push ours out of the last 5 quickly, so record every bar
+  // item text that mentions our call (MutationObserver) instead of polling the current DOM.
+  await bar.evaluate((el) => {
+    const seen: string[] = [];
+    (window as unknown as { barSeen: string[] }).barSeen = seen;
+    new MutationObserver(() => {
+      for (const li of el.querySelectorAll('li')) {
+        const t = (li.textContent ?? '').replace(/\s+/g, ' ').trim();
+        if (t.includes('bar-spec-unknown') && !seen.includes(t)) seen.push(t);
+      }
+    }).observe(el, { childList: true, subtree: true, characterData: true });
+  });
+
   const res = await request.get('/v1.0/users/bar-spec-unknown', { headers: auth });
 
-  await expect(bar.getByRole('listitem').filter({ hasText: 'bar-spec-unknown' })).toHaveText(
-    new RegExp(`^GET /v1\\.0/users/bar-spec-unknown ${res.status()} · \\d+ ms$`),
-    { timeout: 1000 },
-  );
+  const pattern = new RegExp(`^GET /v1\\.0/users/bar-spec-unknown ${res.status()} · \\d+ ms$`);
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { barSeen: string[] }).barSeen), { timeout: 1000 })
+    .toContainEqual(expect.stringMatching(pattern));
 });
 
 test('the bar shows only the last 5 calls, newest first', async ({ page, request }) => {

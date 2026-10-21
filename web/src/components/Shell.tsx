@@ -35,7 +35,7 @@ export interface LiveState<T extends SystemState> {
   state: T | undefined;
   /** The whole `GET /admin/state` response (other systems, `events`, `requests`). */
   full: Record<string, unknown> | undefined;
-  /** Ids (`id`, or `key`) of items new or changed by the last refetch; empties after 2 s. */
+  /** Ids (`id`, or `key`) of items new or changed by a refetch in the last 2 s (each id expires on its own). */
   changed: Set<string>;
   refetch: () => Promise<void>;
 }
@@ -49,7 +49,9 @@ export function useLiveState<T extends SystemState = SystemState>(system: string
   const [changed, setChanged] = useState<Set<string>>(() => new Set());
   const prev = useRef<SystemState>();
   const seq = useRef(0);
-  const clearTimer = useRef<ReturnType<typeof setTimeout>>();
+  const applied = useRef(0);
+  // One expiry timer per flashing id, so a later change does not cut short an earlier item's flash.
+  const flashTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
   const load = useCallback(
     async (baseline: boolean) => {
@@ -57,15 +59,27 @@ export function useLiveState<T extends SystemState = SystemState>(system: string
       const res = await fetch('/admin/state', { headers: { 'X-Mock-Source': 'ui' } });
       if (!res.ok) return;
       const body = (await res.json()) as Record<string, unknown>;
-      if (mine !== seq.current) return; // a newer refetch is under way
+      // Drop only responses older than the one already shown; dropping every superseded one would starve
+      // the screen while change events keep arriving (each refetch overtaken by the next).
+      if (mine < applied.current) return;
+      applied.current = mine;
       const next = (body[system] ?? {}) as SystemState;
       const ids = changedIds(baseline ? undefined : prev.current, next);
       prev.current = next;
       setFull(body);
       if (ids.size > 0) {
-        setChanged(ids);
-        clearTimeout(clearTimer.current);
-        clearTimer.current = setTimeout(() => setChanged(new Set()), FLASH_MS);
+        const timers = flashTimers.current;
+        for (const id of ids) {
+          clearTimeout(timers.get(id));
+          timers.set(
+            id,
+            setTimeout(() => {
+              timers.delete(id);
+              setChanged(new Set(timers.keys()));
+            }, FLASH_MS),
+          );
+        }
+        setChanged(new Set(timers.keys()));
       }
     },
     [system],
@@ -81,7 +95,8 @@ export function useLiveState<T extends SystemState = SystemState>(system: string
     return () => {
       offOpen();
       offChange();
-      clearTimeout(clearTimer.current);
+      for (const t of flashTimers.current.values()) clearTimeout(t);
+      flashTimers.current.clear();
     };
   }, [load, system]);
 

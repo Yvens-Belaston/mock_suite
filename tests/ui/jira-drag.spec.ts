@@ -25,7 +25,13 @@ test('dragging a card onto the Done column transitions it to Done', async ({ pag
   const done = column(page, 'Done');
   await expect(todo.getByRole('article', { name: key })).toBeVisible();
 
-  await todo.getByRole('article', { name: key }).dragTo(done);
+  // Drive the HTML5 drag events on the elements themselves rather than with mouse coordinates
+  // (`dragTo`): parallel specs add Jira issues, a live refetch can re-sort To Do between locating
+  // the card and pressing the mouse, and the gesture then picks up (and moves) someone else's card.
+  const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+  await todo.getByRole('article', { name: key }).dispatchEvent('dragstart', { dataTransfer });
+  await done.dispatchEvent('dragover', { dataTransfer });
+  await done.dispatchEvent('drop', { dataTransfer });
 
   await expect(done.getByRole('article', { name: key })).toBeVisible();
   await expect(todo.getByRole('article', { name: key })).toHaveCount(0);

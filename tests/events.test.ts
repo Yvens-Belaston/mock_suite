@@ -149,8 +149,8 @@ describe('GET /events', () => {
     await start();
     const stream = await connect();
     stream.close();
-    await new Promise((r) => setTimeout(r, 50));
 
-    expect(app.store.emitter.listenerCount('change')).toBe(0);
+    // The server sees the disconnect asynchronously; poll instead of a fixed sleep (flaky under load).
+    await expect.poll(() => app.store.emitter.listenerCount('change'), { timeout: 1000, interval: 10 }).toBe(0);
   });
 });

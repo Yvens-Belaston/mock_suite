@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../src/server.js';
@@ -6,12 +6,12 @@ import { buildServer } from '../src/server.js';
 describe('admin state and reset', () => {
   let app: FastifyInstance;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     app = buildServer();
     await app.ready();
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     await app.close();
   });
 

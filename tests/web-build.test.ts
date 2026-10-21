@@ -1,14 +1,19 @@
 import { execSync } from 'node:child_process';
-import { readdirSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-const dist = join(import.meta.dirname, '..', 'web', 'dist');
+// Build into a temp dir, not web/dist: a concurrent `npm run test:ui` / other run serving or rebuilding
+// web/dist would otherwise race with this build (vite empties its outDir first -> ENOENT).
+const dist = mkdtempSync(join(tmpdir(), 'web-build-test-'));
 
 describe('npm run build:web', () => {
   beforeAll(() => {
-    execSync('npm run build:web', { stdio: 'pipe' });
+    execSync(`npm run build:web -- --outDir ${JSON.stringify(dist)} --emptyOutDir`, { stdio: 'pipe' });
   }, 120_000);
+
+  afterAll(() => rmSync(dist, { recursive: true, force: true }));
 
   it('emits an index.html that loads its assets from /ui/', () => {
     const html = readFileSync(join(dist, 'index.html'), 'utf8');
