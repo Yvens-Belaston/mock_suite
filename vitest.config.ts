@@ -2,6 +2,6 @@ import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    exclude: [...configDefaults.exclude, ".claude/**", "web/**"],
+    exclude: [...configDefaults.exclude, ".claude/**", "e2e/**", "web/**"],
   },
 });
