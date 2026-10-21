@@ -1,42 +1,15 @@
 import { X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
+import { OnboardingButton } from '../components/OnboardingForm';
 import { Shell, useLiveState } from '../components/Shell';
-import { OnboardingButton } from './OnboardingForm';
-import { Wijzigingen } from './TopdeskChanges';
-import { Personen } from './TopdeskPersons';
-
-/** Stored TOPdesk incident as returned by `/admin/state`.topdesk.incidents (spec section 3). */
-export interface Incident {
-  id: string;
-  number: string;
-  briefDescription: string;
-  request: string;
-  caller: { id: string; dynamicName: string; email: string } | null;
-  category: { name: string } | null;
-  subcategory: { name: string } | null;
-  operatorGroup: { name: string } | null;
-  processingStatus: { name: string } | null;
-  closed: boolean;
-  externalNumber: string;
-  actions: { date: string; text: string; author: string }[];
-  createdAt: string;
-}
-
-/** The `topdesk` slice of `/admin/state`. Tickets 17 add `changes`/`persons` usage. */
-export interface TopdeskState {
-  incidents?: Incident[];
-  changes?: unknown[];
-  persons?: unknown[];
-  [key: string]: unknown;
-}
-
-export type Live = ReturnType<typeof useLiveState<TopdeskState>>;
+import { Th } from '../components/Th';
+import { Personen } from '../components/TopdeskPersons';
+import { Wijzigingen } from '../components/TopdeskChanges';
+import { formatDateTime } from '../lib/dutchDate';
+import type { Incident, Live, TopdeskState } from '../lib/topdeskTypes';
 
 const TABS = ['Meldingen', 'Wijzigingen', 'Personen'] as const;
 type Tab = (typeof TABS)[number];
-
-const dateTime = new Intl.DateTimeFormat('nl-NL', { dateStyle: 'short', timeStyle: 'short' });
-export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));
 
 /** Newest first: incident numbers increase, so sort on number descending. */
 const byNumberDesc = (a: Incident, b: Incident) => b.number.localeCompare(a.number);
@@ -123,10 +96,6 @@ function Meldingen({ live }: { live: Live }) {
       {open && <IncidentPanel incident={open} flash={changed.has(open.id)} onClose={() => setOpenId(undefined)} />}
     </div>
   );
-}
-
-export function Th({ children }: { children: ReactNode }) {
-  return <th scope="col" className="px-3 py-2 font-medium whitespace-nowrap">{children}</th>;
 }
 
 function StatusPill({ closed, children }: { closed: boolean; children: ReactNode }) {

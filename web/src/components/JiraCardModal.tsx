@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
-import { Adf } from '../adf';
-import { OfeliaChip, type JiraIssue } from './Jira';
+import { formatDateTime } from '../lib/dutchDate';
+import type { JiraIssue } from '../lib/jiraTypes';
+import { Adf } from './Adf';
+import { OfeliaChip } from './OfeliaChip';
 
 interface JiraComment {
   id: string;
@@ -63,9 +65,9 @@ export function JiraCardModal({
         <ul className="flex flex-col gap-2">
           {comments.map((c) => (
             <li key={c.id} className="rounded-md border border-gray-200 p-2">
-              <div className="text-xs text-gray-500">
+              <div className="text-sm text-gray-500">
                 {users.find((u) => u.accountId === c.author?.accountId)?.displayName ?? 'Onbekend'} ·{' '}
-                {new Date(c.created).toLocaleString('nl-NL')}
+                {formatDateTime(c.created)}
               </div>
               <Adf doc={c.body} />
             </li>

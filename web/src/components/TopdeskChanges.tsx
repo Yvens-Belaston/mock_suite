@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { toast } from '../components/Shell';
-import { formatDateTime, Th, type Live } from './Topdesk';
+import { formatDateTime } from '../lib/dutchDate';
+import type { Live } from '../lib/topdeskTypes';
+import { toast } from './Shell';
+import { Th } from './Th';
 
 /** Stored TOPdesk operator change as returned by `/admin/state`.topdesk.changes (spec section 3). */
 export interface Change {

@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { FLASH_MS, Shell, useChangeEvents, useLiveState } from '../components/Shell';
+import { formatDate, formatDateTime } from '../lib/dutchDate';
 
 /** A user as stored in `/admin/state`.graph (see `GraphUser` in `src/routes/graph.ts`). */
 export interface EntraUser {
@@ -48,7 +49,7 @@ export function LicenceChips({ user, skus }: { user: EntraUser; skus: EntraSku[]
   return (
     <ul className="flex flex-wrap gap-1">
       {user.assignedLicenses.map(({ skuId }) => (
-        <li key={skuId} className="rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700">
+        <li key={skuId} className="rounded bg-blue-50 px-1.5 py-0.5 text-sm font-medium text-blue-700">
           {skus.find((s) => s.skuId === skuId)?.skuPartNumber ?? skuId}
         </li>
       ))}
@@ -93,7 +94,7 @@ export function UsersTable({
             <td className="px-3 py-2">
               <span className="flex items-center gap-2">
                 <span
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
                   style={{ background: u.accountEnabled ? 'var(--accent)' : '#9CA3AF' }}
                   aria-hidden="true"
                 >
@@ -127,14 +128,6 @@ export interface LoggedRequest {
   at: string;
 }
 
-const pad = (n: number) => String(n).padStart(2, '0');
-
-/** Dutch date format, `dd-MM-yyyy HH:mm` (spec 6.6). */
-export function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 function decodePath(path: string): string {
   try {
     return decodeURIComponent(path);
@@ -159,7 +152,7 @@ export function auditFor(user: EntraUser, requests: LoggedRequest[]): LoggedRequ
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <dt className="text-xs font-medium tracking-wide text-gray-500 uppercase">{label}</dt>
+      <dt className="text-sm font-medium tracking-wide text-gray-500 uppercase">{label}</dt>
       <dd className="mt-0.5">{children}</dd>
     </div>
   );
@@ -206,7 +199,7 @@ export function UserPanel({
           {groups.length ? (
             <ul className="flex flex-wrap gap-1">
               {groups.map((g) => (
-                <li key={g.id} className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-700">
+                <li key={g.id} className="rounded bg-gray-100 px-1.5 py-0.5 text-sm font-medium text-gray-700">
                   {g.displayName}
                 </li>
               ))}
@@ -220,12 +213,12 @@ export function UserPanel({
         </Field>
         <Field label="Manager">{manager?.displayName ?? none('Geen')}</Field>
         <Field label="Datum in dienst">
-          {user.employeeHireDate ? formatDateTime(user.employeeHireDate).slice(0, 10) : none('Onbekend')}
+          {user.employeeHireDate ? formatDate(user.employeeHireDate) : none('Onbekend')}
         </Field>
       </dl>
       <h3 className="mt-5 mb-2 font-semibold text-gray-900">Audit (Graph-aanroepen)</h3>
       {audit.length === 0 && none('Nog geen aanroepen in deze run.')}
-      <ul aria-label="Audit" className="space-y-1 font-mono text-xs">
+      <ul aria-label="Audit" className="space-y-1 font-mono text-sm">
         {audit.map((r, i) => (
           <li key={`${r.at}-${i}`} className="flex gap-2 border-b border-gray-100 py-1">
             <span className="shrink-0 text-gray-500">{formatDateTime(r.at)}</span>
