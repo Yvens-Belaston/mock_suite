@@ -1,5 +1,6 @@
+import { startOnboardingCase, type StartCaseResult } from '../bonita.js';
 import type { Store } from '../store.js';
-import { createIncident, type CreateIncidentResult } from './topdesk-incidents.js';
+import { createIncident, type CreateIncidentResult, type Incident } from './topdesk-incidents.js';
 
 /** The onboarding form = the section 5 contract fields (without `topdeskIncidentNumber`, which the mock adds). */
 export interface OnboardingForm {
@@ -71,4 +72,36 @@ export function createOnboardingIncident(store: Store, form: OnboardingForm): Cr
     subcategory: { name: 'Indiensttreding' },
     operatorGroup: { name: 'HR' },
   });
+}
+
+export type OfeliaStart = { caseId: string } | { ofeliaError: { httpStatus: number | null; message: string } };
+
+const AUTHOR = 'Ofelia Integratie';
+
+/**
+ * Callback A steps 3-6: start the Bonita onboarding case for `incident`, then record the outcome on it in
+ * ONE update (`externalNumber` OFELIA-{caseId} + action, or the error action; event callback_ok/_error).
+ * The caller checks `bonitaConfig().enabled` first. Never throws.
+ */
+export async function startOfeliaCase(store: Store, form: OnboardingForm, incident: Incident): Promise<OfeliaStart> {
+  const result: StartCaseResult = await startOnboardingCase({ ...form, topdeskIncidentNumber: incident.number });
+  const now = new Date().toISOString();
+  // Event summaries are the screen toasts (Shell): green on callback_ok, red on callback_error.
+  const okText = result.status === 'ok' ? `Ofelia-proces gestart – case ${result.caseId}` : '';
+  const errorText = `Fout bij starten Ofelia-proces (${result.httpStatus === null ? 'geen verbinding' : `HTTP ${result.httpStatus}`})`;
+  store.update('topdesk', (t) => {
+    const stored = (t.incidents as Incident[]).find((i) => i.id === incident.id) ?? incident;
+    stored.bonitaCallback = result;
+    stored.updatedAt = now;
+    if (result.status === 'ok') {
+      stored.externalNumber = `OFELIA-${result.caseId}`;
+      stored.actions.push({ date: now, text: `Ofelia case ${result.caseId} gestart`, author: AUTHOR });
+      return { entity: 'incident', action: 'callback_ok', id: stored.id, summary: okText };
+    }
+    stored.actions.push({ date: now, text: 'Fout bij starten Ofelia-proces', author: AUTHOR });
+    return { entity: 'incident', action: 'callback_error', id: stored.id, summary: errorText };
+  });
+  return result.status === 'ok'
+    ? { caseId: result.caseId }
+    : { ofeliaError: { httpStatus: result.httpStatus, message: errorText } };
 }

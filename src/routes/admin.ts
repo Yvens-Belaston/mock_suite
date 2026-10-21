@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { bonitaConfig } from '../bonita.js';
 import type { Store } from '../store.js';
-import { createOnboardingIncident, parseOnboardingForm } from './topdesk-onboarding.js';
+import { createOnboardingIncident, parseOnboardingForm, startOfeliaCase } from './topdesk-onboarding.js';
 
 export function adminRoutes(store: Store) {
   return async function (app: FastifyInstance): Promise<void> {
@@ -13,15 +13,17 @@ export function adminRoutes(store: Store) {
     }));
 
     /**
-     * The TOPdesk screen form (spec 4.6, callback A steps 1-2): creates the onboarding incident.
-     * Ticket 29 starts the Bonita case here, after the incident exists, and adds `caseId` to the reply.
+     * The TOPdesk screen form (spec 4.6, callback A): creates the onboarding incident, then starts the
+     * Bonita case and adds `caseId` (or `ofeliaError {httpStatus, message}`) to the reply.
      */
     app.post('/admin/topdesk/onboarding', async (req, reply) => {
       const form = parseOnboardingForm(req.body);
       if (typeof form === 'string') return reply.code(400).send({ message: form });
       const result = createOnboardingIncident(store, form);
       if (!result.ok) return reply.code(result.status).send({ message: result.message });
-      return reply.code(201).send({ incident: result.incident });
+      // Bonita disabled: local state only. A Bonita failure keeps the incident, so the reply stays 201.
+      const ofelia = bonitaConfig().enabled ? await startOfeliaCase(store, form, result.incident) : {};
+      return reply.code(201).send({ incident: result.incident, ...ofelia });
     });
 
     /** Newest first; `limit` defaults to 50 and is capped by the log size. */

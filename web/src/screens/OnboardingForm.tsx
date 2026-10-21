@@ -88,13 +88,13 @@ function OnboardingDialog({ onClose }: { onClose: () => void }) {
         headers: { 'content-type': 'application/json', 'X-Mock-Source': 'ui' },
         body: JSON.stringify(form),
       });
-      const body = (await res.json().catch(() => ({}))) as { message?: string; caseId?: string | number };
+      const body = (await res.json().catch(() => ({}))) as { message?: string };
       if (!res.ok) {
         toast(`Aanvraag mislukt (${res.status})${body.message ? `: ${body.message}` : ''}`, 'error');
         return;
       }
-      // The incident's own change event already toasts "Melding … aangemaakt"; ticket 29 adds the case toast.
-      if (body.caseId !== undefined) toast(`Ofelia-proces gestart – case ${body.caseId}`, 'success');
+      // No success toasts here: the change events do it for every viewer ("Melding … aangemaakt", then
+      // callback_ok "Ofelia-proces gestart – case …" or a red callback_error with Bonita's HTTP status).
       onClose();
     } catch {
       toast('Aanvraag mislukt: server niet bereikbaar', 'error');

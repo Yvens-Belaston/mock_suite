@@ -1,0 +1,16 @@
+{
+  "inputName": "onboardingInput",
+  "fields": {
+    "firstName": "firstName",
+    "lastName": "lastName",
+    "startDate": "startDate",
+    "department": "department",
+    "role": "role",
+    "location": "location",
+    "equipmentProfile": "equipmentProfile",
+    "parking": "parking",
+    "applications": "applications",
+    "managerEmail": "managerEmail",
+    "topdeskIncidentNumber": "topdeskIncidentNumber"
+  }
+}
