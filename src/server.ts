@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { pathToFileURL } from 'node:url';
 import { adminRoutes } from './routes/admin.js';
+import { eventsRoutes } from './routes/events.js';
 import { createStore, type Store } from './store.js';
 
 declare module 'fastify' {
@@ -12,6 +13,8 @@ declare module 'fastify' {
 export interface ServerOptions {
   /** Defaults to a fresh store loaded from `seed/`. */
   store?: Store;
+  /** SSE heartbeat interval for `/events`; defaults to 15 s (spec section 7). */
+  heartbeatMs?: number;
 }
 
 export function buildServer(options: ServerOptions = {}): FastifyInstance {
@@ -27,6 +30,7 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
 
   app.get('/health', async () => ({ status: 'ok' }));
   app.register(adminRoutes(store));
+  app.register(eventsRoutes(store, options.heartbeatMs));
 
   return app;
 }
